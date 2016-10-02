@@ -263,7 +263,11 @@ function WebGLShadowMap( _renderer, _lights, _objects, capabilities ) {
 
 				_renderList.length = 0;
 
-				projectObject( scene, camera, shadowCamera );
+				//projectObject( scene, camera, shadowCamera );
+				var children = scene.children;
+				for ( var i = 0, l = children.length; i < l; i ++ ) {
+					projectObject( children[ i ], camera, shadowCamera );
+				}
 
 				// render shadow map
 				// render regular objects
@@ -439,7 +443,7 @@ function WebGLShadowMap( _renderer, _lights, _objects, capabilities ) {
 
 		if ( visible && ( object.isMesh || object.isLine || object.isPoints ) ) {
 
-			if ( object.castShadow && ( object.frustumCulled === false || _frustum.intersectsObject( object ) === true ) ) {
+			if ( object.castShadow && ( (object.parent && object.parent.inFrustum) || ( object.frustumCulled === false || (camera.inFov(object) && _frustum.intersectsObject( object ))) )) {
 
 				var material = object.material;
 

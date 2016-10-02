@@ -29,6 +29,10 @@ function Object3D() {
 	this.parent = null;
 	this.children = [];
 
+	this.inFrustum = false;
+	this.hackedIntoScene = false;
+	this.updated = false;
+
 	this.up = Object3D.DefaultUp.clone();
 
 	var position = new Vector3();
@@ -392,12 +396,36 @@ Object3D.prototype = {
 
 	},
 
-	getWorldPosition: function ( optionalTarget ) {
+/*	getWorldPosition: function ( optionalTarget ) {
 
 		var result = optionalTarget || new Vector3();
 
 		this.updateMatrixWorld( true );
 
+		return result.setFromMatrixPosition( this.matrixWorld );
+
+	},*/
+
+	getWorldPosition: function ( optionalTarget ) {
+
+		if(this.parent === null) {
+			if(optionalTarget) {
+				return optionalTarget.copy(this.position);
+			}
+			return this.position.clone();
+		}
+
+		var result = optionalTarget || this.position.clone();
+
+		// var parent = this.parent;
+		// while (parent && !(parent instanceof THREE.Scene)) {
+		// 	result.add(parent.position);
+		// 	parent = parent.parent;
+		// }
+		// return result;
+
+		// back to normal getworldposition! but no updating children matrices!!!
+		this.updateMatrixWorldNoChildren( true );
 		return result.setFromMatrixPosition( this.matrixWorld );
 
 	},
@@ -560,6 +588,29 @@ Object3D.prototype = {
 
 	},
 
+	updateMatrixWorldNoChildren: function ( force ) {
+
+		if (this.matrixAutoUpdate === true) this.updateMatrix();
+
+		if (this.matrixWorldNeedsUpdate === true || force === true) {
+
+			if (this.parent === null ) { //  || this.parent instanceof THREE.Scene || this.parent instanceof THREE.VirtualScene) {
+
+				//this.matrixWorld.copy( this.matrix );
+				this.matrixWorld = this.matrix;
+
+			} else {
+
+				this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
+
+			}
+
+			this.matrixWorldNeedsUpdate = false;
+
+		}
+
+	},
+
 	toJSON: function ( meta ) {
 
 		// meta is '' when called from JSON.stringify
@@ -713,7 +764,7 @@ Object3D.prototype = {
 		this.frustumCulled = source.frustumCulled;
 		this.renderOrder = source.renderOrder;
 
-		this.userData = JSON.parse( JSON.stringify( source.userData ) );
+		this.userData = JSON.parse( JSON.stringify( source.userData || {} ) );
 
 		if ( recursive === true ) {
 

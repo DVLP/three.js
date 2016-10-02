@@ -37,6 +37,8 @@ function Geometry() {
 	this.faceVertexUvs = [[]];
 
 	this.morphTargets = [];
+	this.morphTargetsMap = null;
+
 	this.morphNormals = [];
 
 	this.skinWeights = [];

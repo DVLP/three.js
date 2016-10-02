@@ -182,7 +182,7 @@ Mesh.prototype = Object.assign( Object.create( Object3D.prototype ), {
 
 			// Checking boundingSphere distance to ray
 
-			if ( geometry.boundingSphere === null ) geometry.computeBoundingSphere();
+			if ( geometry.boundingSphere === null ) geometry.computeBoundingSphere(this.scale);
 
 			sphere.copy( geometry.boundingSphere );
 			sphere.applyMatrix4( matrixWorld );

@@ -83,7 +83,7 @@ BoxHelper.prototype.update = ( function () {
 
 		position.needsUpdate = true;
 
-		this.geometry.computeBoundingSphere();
+		this.geometry.computeBoundingSphere(this.scale);
 
 	};
 

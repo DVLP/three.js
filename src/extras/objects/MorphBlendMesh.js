@@ -67,7 +67,7 @@ MorphBlendMesh.prototype.autoCreateAnimations = function ( fps ) {
 
 	var pattern = /([a-z]+)_?(\d+)/i;
 
-	var firstAnimation, frameRanges = {};
+	var firstAnimation, frameRanges = new Map();
 
 	var geometry = this.geometry;
 
@@ -80,9 +80,9 @@ MorphBlendMesh.prototype.autoCreateAnimations = function ( fps ) {
 
 			var name = chunks[ 1 ];
 
-			if ( ! frameRanges[ name ] ) frameRanges[ name ] = { start: Infinity, end: - Infinity };
+			if ( ! frameRanges.get(name) ) frameRanges.set(name, { start: Infinity, end: - Infinity });
 
-			var range = frameRanges[ name ];
+			var range = frameRanges.get(name);
 
 			if ( i < range.start ) range.start = i;
 			if ( i > range.end ) range.end = i;
@@ -93,12 +93,11 @@ MorphBlendMesh.prototype.autoCreateAnimations = function ( fps ) {
 
 	}
 
-	for ( var name in frameRanges ) {
+	frameRanges.forEach(function (range, name) {
 
-		var range = frameRanges[ name ];
 		this.createAnimation( name, range.start, range.end, fps );
 
-	}
+	});
 
 	this.firstAnimation = firstAnimation;
 

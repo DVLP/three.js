@@ -3,8 +3,8 @@ import { Matrix4 } from '../math/Matrix4';
 import { WebGLUniforms } from './webgl/WebGLUniforms';
 import { UniformsUtils } from './shaders/UniformsUtils';
 import { ShaderLib } from './shaders/ShaderLib';
-import { LensFlarePlugin } from './webgl/plugins/LensFlarePlugin';
-import { SpritePlugin } from './webgl/plugins/SpritePlugin';
+// import { LensFlarePlugin } from './webgl/plugins/LensFlarePlugin';
+// import { SpritePlugin } from './webgl/plugins/SpritePlugin';
 import { WebGLShadowMap } from './webgl/WebGLShadowMap';
 import { ShaderMaterial } from '../materials/ShaderMaterial';
 import { Mesh } from '../objects/Mesh';
@@ -365,8 +365,8 @@ function WebGLRenderer( parameters ) {
 
 	// Plugins
 
-	var spritePlugin = new SpritePlugin( this, sprites );
-	var lensFlarePlugin = new LensFlarePlugin( this, lensFlares );
+	// var spritePlugin = new SpritePlugin( this, sprites );
+	// var lensFlarePlugin = new LensFlarePlugin( this, lensFlares );
 
 	// API
 
@@ -923,13 +923,9 @@ function WebGLRenderer( parameters ) {
 
 		var geometryAttributes = geometry.attributes;
 
-		var programAttributes = program.getAttributes();
-
 		var materialDefaultAttributeValues = material.defaultAttributeValues;
 
-		for ( var name in programAttributes ) {
-
-			var programAttribute = programAttributes[ name ];
+		program.getAttributesMap().forEach(function (programAttribute, name) {
 
 			if ( programAttribute >= 0 ) {
 
@@ -1025,7 +1021,7 @@ function WebGLRenderer( parameters ) {
 
 			}
 
-		}
+		});
 
 		state.disableUnusedAttributes();
 
@@ -1087,12 +1083,13 @@ function WebGLRenderer( parameters ) {
 
 	this.render = function ( scene, camera, renderTarget, forceClear ) {
 
-		if ( camera !== undefined && camera.isCamera !== true ) {
+    // seems like an unnecessary step
+		// if ( camera !== undefined && camera.isCamera !== true ) {
 
-			console.error( 'THREE.WebGLRenderer.render: camera is not an instance of THREE.Camera.' );
-			return;
+		// 	console.error( 'THREE.WebGLRenderer.render: camera is not an instance of THREE.Camera.' );
+		// 	return;
 
-		}
+		// }
 
 		// reset caching for this frame
 
@@ -1124,7 +1121,16 @@ function WebGLRenderer( parameters ) {
 		_localClippingEnabled = this.localClippingEnabled;
 		_clippingEnabled = _clipping.init( this.clippingPlanes, _localClippingEnabled, camera );
 
-		projectObject( scene, camera );
+		// projectObject( scene, camera, false );
+		var children = scene.children;
+		for ( var i = 0, l = children.length; i < l; i ++ ) {
+			projectObject( children[ i ], camera, false );
+		}
+
+		// Objects which are hacked into scene will be skipped in above loop i.e. if they are children
+		for(var j = 0, jl = scene.hackedIntoScene.length; j < jl; j++){
+			projectObject( scene.hackedIntoScene[j], camera, true );
+		}
 
 		opaqueObjects.length = opaqueObjectsLastIndex + 1;
 		transparentObjects.length = transparentObjectsLastIndex + 1;
@@ -1232,8 +1238,8 @@ function WebGLRenderer( parameters ) {
 
 		// custom render plugins (post pass)
 
-		spritePlugin.render( scene, camera );
-		lensFlarePlugin.render( scene, camera, _currentViewport );
+		// spritePlugin.render( scene, camera );
+		// lensFlarePlugin.render( scene, camera, _currentViewport );
 
 		// Generate mipmap if we're using any kind of mipmap filtering
 
@@ -1245,9 +1251,9 @@ function WebGLRenderer( parameters ) {
 
 		// Ensure depth buffer writing is enabled so it can be cleared on next render
 
-		state.setDepthTest( true );
-		state.setDepthWrite( true );
-		state.setColorWrite( true );
+		// state.setDepthTest( true );
+		// state.setDepthWrite( true );
+		// state.setColorWrite( true );
 
 		// _gl.finish();
 
@@ -1302,21 +1308,21 @@ function WebGLRenderer( parameters ) {
 
 	}
 
-	// TODO Duplicated code (Frustum)
+	// TODO Duplicated code (Frustum), not any more!
 
-	function isObjectViewable( object ) {
+	// function isObjectViewable( object ) {
 
-		var geometry = object.geometry;
+	// 	var geometry = object.geometry;
 
-		if ( geometry.boundingSphere === null )
-			geometry.computeBoundingSphere();
+	// 	if ( geometry.boundingSphere === null )
+	// 		geometry.computeBoundingSphere();
 
-		_sphere.copy( geometry.boundingSphere ).
-		applyMatrix4( object.matrixWorld );
+	//	_sphere.copy( geometry.boundingSphere ).
+	//	applyMatrix4( object.matrixWorld );
 
-		return isSphereViewable( _sphere );
+	// 	return isSphereViewable( _sphere );
 
-	}
+	// }
 
 	function isSpriteViewable( sprite ) {
 
@@ -1353,9 +1359,9 @@ function WebGLRenderer( parameters ) {
 
 	}
 
-	function projectObject( object, camera ) {
+	function projectObject( object, camera, hackedIntoScene ) {
 
-		if ( object.visible === false ) return;
+		if ( object.visible === false || (!hackedIntoScene && object.hackedIntoScene) ) return;
 
 		var visible = ( object.layers.mask & camera.layers.mask ) !== 0;
 
@@ -1367,7 +1373,9 @@ function WebGLRenderer( parameters ) {
 
 			} else if ( object.isSprite ) {
 
-				if ( object.frustumCulled === false || isSpriteViewable( object ) === true ) {
+				if ( (object.parent && object.parent.inFrustum) || (object.frustumCulled === false || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object ))))) {
+
+					object.inFrustum = true;
 
 					sprites.push( object );
 
@@ -1396,7 +1404,10 @@ function WebGLRenderer( parameters ) {
 
 				}
 
-				if ( object.frustumCulled === false || isObjectViewable( object ) === true ) {
+				// checking if object's parent is in frustum only is evil...
+				if ( object.frustumCulled === false || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
+
+					object.inFrustum = true;
 
 					var material = object.material;
 
@@ -1441,6 +1452,13 @@ function WebGLRenderer( parameters ) {
 
 			}
 
+		}
+
+		object.updated = false;
+
+		// only continue with children if object is visible in scene or this is Scene(not in frustum by default)
+		if( !object.inFrustum ) {
+			return;
 		}
 
 		var children = object.children;
@@ -2286,6 +2304,79 @@ function WebGLRenderer( parameters ) {
 
 		_lights.shadows.length = lightShadowsLength;
 
+			}
+
+	var maxSpotLights = 2;
+	// 1. We don't want lights hash to change - this would trigger needsUpdate on materials!
+	// 2. We want to keep a pool of 6 lights to be reused when needed
+	// 3. In case of adding more than 6 lights, only placeholder objects should be created
+	function setupSpotlightsFromPool (lights, camera) {
+		var spotLightsPool = [];
+		var spotLength = 0;
+		var viewMatrix = camera.matrixWorldInverse;
+
+		// get all spotlights into an array
+		for ( var l = 0, ll = lights.length; l < ll; l ++ ) {
+			var light = lights[l];
+
+			if(light.isSpotLight) {
+				spotLightsPool.push(light);
+
+				var distnace = _vector3.setFromMatrixPosition(light.matrixWorld).distanceTo(camera.parent.position);
+				var inFrustum = (light.parent && light.parent.inFrustum) ? 1 : 3; // not being in frustum makes lights 5 times less important than those in
+				if(!light.parent) {
+					inFrustum = camera.sphereInFov(light.position.x, light.position.z, 5) ? 1 : 3;
+				}
+
+				light.priority = light.priority || 1;
+				light.priorityDistanceFromCamera = distnace * light.priority * inFrustum;
+				if(distnace > 40 && inFrustum > 1) {
+					// if not in frustum and far completelty kill
+					light.priorityDistanceFromCamera *= 100000;
+				}
+				// light turned off? bottom of priority
+				if(light.intensity === 0) {
+					light.priorityDistanceFromCamera *= 100000000;
+				}
+			}
+		}
+
+		// sort by importance
+		spotLightsPool.sort(function (a, b) {
+			return a.priorityDistanceFromCamera - b.priorityDistanceFromCamera;
+		});
+		for ( l = 0, ll = Math.min(spotLightsPool.length, maxSpotLights); l < ll; l++ ) {
+			var light = spotLightsPool[l];
+			var uniforms = lightCache.get( light );
+
+			uniforms.position.setFromMatrixPosition( light.matrixWorld );
+			uniforms.position.applyMatrix4( viewMatrix );
+
+			uniforms.color.copy( light.color ).multiplyScalar( light.intensity );
+			uniforms.distance = light.distance;
+
+			uniforms.direction.setFromMatrixPosition( light.matrixWorld );
+			_vector3.setFromMatrixPosition( light.target.matrixWorld );
+			uniforms.direction.sub( _vector3 );
+			uniforms.direction.transformDirection( viewMatrix );
+
+			uniforms.coneCos = Math.cos( light.angle );
+			uniforms.penumbraCos = Math.cos( light.angle * ( 1 - light.penumbra ) );
+			uniforms.decay = ( light.distance === 0 ) ? 0.0 : light.decay;
+
+			uniforms.shadow = light.castShadow;
+			if ( light.castShadow ) {
+			  uniforms.shadowBias = light.shadow.bias;
+			  uniforms.shadowRadius = light.shadow.radius;
+			  uniforms.shadowMapSize = light.shadow.mapSize;
+			}
+
+			_lights.spotShadowMap[ spotLength ] = shadowMap;
+			_lights.spotShadowMatrix[ spotLength ] = light.shadow.matrix;
+			_lights.spot[ spotLength ++ ] = uniforms;
+		}
+		return spotLength;
+
 	}
 
 	function setupLights( lights, camera ) {
@@ -2296,14 +2387,12 @@ function WebGLRenderer( parameters ) {
 			intensity,
 			distance,
 			shadowMap,
-
 			viewMatrix = camera.matrixWorldInverse,
-
-		directionalLength = 0,
-		pointLength = 0,
-		spotLength = 0,
-		rectAreaLength = 0,
-		hemiLength = 0;
+			directionalLength = 0,
+			pointLength = 0,
+			spotLength = setupSpotlightsFromPool(lights, camera),
+			rectAreaLength = 0,
+			hemiLength = 0;
 
 		for ( l = 0, ll = lights.length; l < ll; l ++ ) {
 
@@ -2347,36 +2436,36 @@ function WebGLRenderer( parameters ) {
 
 			} else if ( light.isSpotLight ) {
 
-				var uniforms = lightCache.get( light );
+				// var uniforms = lightCache.get( light );
 
-				uniforms.position.setFromMatrixPosition( light.matrixWorld );
-				uniforms.position.applyMatrix4( viewMatrix );
+				// uniforms.position.setFromMatrixPosition( light.matrixWorld );
+				// uniforms.position.applyMatrix4( viewMatrix );
 
-				uniforms.color.copy( color ).multiplyScalar( intensity );
-				uniforms.distance = distance;
+				// uniforms.color.copy( color ).multiplyScalar( intensity );
+				// uniforms.distance = distance;
 
-				uniforms.direction.setFromMatrixPosition( light.matrixWorld );
-				_vector3.setFromMatrixPosition( light.target.matrixWorld );
-				uniforms.direction.sub( _vector3 );
-				uniforms.direction.transformDirection( viewMatrix );
+				// uniforms.direction.setFromMatrixPosition( light.matrixWorld );
+				// _vector3.setFromMatrixPosition( light.target.matrixWorld );
+				// uniforms.direction.sub( _vector3 );
+				// uniforms.direction.transformDirection( viewMatrix );
 
-				uniforms.coneCos = Math.cos( light.angle );
-				uniforms.penumbraCos = Math.cos( light.angle * ( 1 - light.penumbra ) );
-				uniforms.decay = ( light.distance === 0 ) ? 0.0 : light.decay;
+				// uniforms.coneCos = Math.cos( light.angle );
+				// uniforms.penumbraCos = Math.cos( light.angle * ( 1 - light.penumbra ) );
+				// uniforms.decay = ( light.distance === 0 ) ? 0.0 : light.decay;
 
-				uniforms.shadow = light.castShadow;
+				// uniforms.shadow = light.castShadow;
 
-				if ( light.castShadow ) {
+				// if ( light.castShadow ) {
 
-					uniforms.shadowBias = light.shadow.bias;
-					uniforms.shadowRadius = light.shadow.radius;
-					uniforms.shadowMapSize = light.shadow.mapSize;
+				// 	uniforms.shadowBias = light.shadow.bias;
+				// 	uniforms.shadowRadius = light.shadow.radius;
+				// 	uniforms.shadowMapSize = light.shadow.mapSize;
 
-				}
+				// }
 
-				_lights.spotShadowMap[ spotLength ] = shadowMap;
-				_lights.spotShadowMatrix[ spotLength ] = light.shadow.matrix;
-				_lights.spot[ spotLength ++ ] = uniforms;
+				// _lights.spotShadowMap[ spotLength ] = shadowMap;
+				// _lights.spotShadowMatrix[ spotLength ] = light.shadow.matrix;
+				// _lights.spot[ spotLength ++ ] = uniforms;
 
 			} else if ( light.isRectAreaLight ) {
 
@@ -2450,12 +2539,17 @@ function WebGLRenderer( parameters ) {
 
 				var uniforms = lightCache.get( light );
 
-				uniforms.direction.setFromMatrixPosition( light.matrixWorld );
-				uniforms.direction.transformDirection( viewMatrix );
-				uniforms.direction.normalize();
+				if(light.needsUpdate) {
 
-				uniforms.skyColor.copy( light.color ).multiplyScalar( intensity );
-				uniforms.groundColor.copy( light.groundColor ).multiplyScalar( intensity );
+					uniforms.direction.setFromMatrixPosition( light.matrixWorld );
+					uniforms.direction.transformDirection( viewMatrix );
+					uniforms.direction.normalize();
+
+					uniforms.skyColor.copy( light.color ).multiplyScalar( intensity );
+					uniforms.groundColor.copy( light.groundColor ).multiplyScalar( intensity );
+					light.needsUpdate = false;
+
+				}
 
 				_lights.hemi[ hemiLength ++ ] = uniforms;
 

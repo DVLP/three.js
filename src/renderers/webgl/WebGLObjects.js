@@ -5,6 +5,14 @@
 import { BufferAttribute } from '../../core/BufferAttribute';
 import { WebGLGeometries } from './WebGLGeometries';
 
+function makeMap( object ) {
+
+	var map = new Map();
+	for(var key in object) { object.hasOwnProperty(key) && map.set(key, object[key]); }
+	return map;
+
+}
+
 function WebGLObjects( gl, properties, info ) {
 
 	var geometries = new WebGLGeometries( gl, properties, info );
@@ -17,6 +25,14 @@ function WebGLObjects( gl, properties, info ) {
 
 		var geometry = geometries.get( object );
 
+		if( object.updated ) {
+
+			return object.geometry;
+
+		}
+
+		object.updated = true;
+
 		if ( object.geometry.isGeometry ) {
 
 			geometry.updateFromObject( object );
@@ -24,7 +40,12 @@ function WebGLObjects( gl, properties, info ) {
 		}
 
 		var index = geometry.index;
-		var attributes = geometry.attributes;
+		var attributes = geometry.attributesMap;
+		if(!attributes) {
+
+			attributes = geometry.attributesMap = makeMap(geometry.attributes);
+
+		}
 
 		if ( index !== null ) {
 
@@ -32,19 +53,19 @@ function WebGLObjects( gl, properties, info ) {
 
 		}
 
-		for ( var name in attributes ) {
+		attributes.forEach(updateAttribute);
 
-			updateAttribute( attributes[ name ], gl.ARRAY_BUFFER );
-
-		}
+		var morphAttributesMap = geometry.morphAttributesMap;
 
 		// morph targets
 
-		var morphAttributes = geometry.morphAttributes;
+		if(!morphAttributesMap) {
 
-		for ( var name in morphAttributes ) {
+			morphAttributesMap = geometry.morphAttributesMap = makeMap(geometry.morphAttributes);
 
-			var array = morphAttributes[ name ];
+		}
+
+		morphAttributesMap.forEach(function(array, name) {
 
 			for ( var i = 0, l = array.length; i < l; i ++ ) {
 
@@ -52,13 +73,17 @@ function WebGLObjects( gl, properties, info ) {
 
 			}
 
-		}
+		});
 
 		return geometry;
 
 	}
 
 	function updateAttribute( attribute, bufferType ) {
+
+		if(bufferType !== gl.ELEMENT_ARRAY_BUFFER) {
+			bufferType = gl.ARRAY_BUFFER;
+		}
 
 		var data = ( attribute.isInterleavedBufferAttribute ) ? attribute.data : attribute;
 

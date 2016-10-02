@@ -82,7 +82,30 @@ Frustum.prototype = {
 
 	},
 
-	intersectsObject: function () {
+	intersectsObject: function (object) {
+
+		var sphere = object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale);
+		var planes = this.planes;
+		var center = object.position;
+		var negRadius = - sphere.radius;
+
+		// first camera.inFov gets executed
+		// (2) bottom (1) right
+		// (3) top (2) left
+		// optimization: i < 4 instead of i < 4 toskip NEAR(5) and FAR(6) frustum planes - that's ~20k calculations per second less
+		// rejection is based on distance instead
+		//for ( var i = 4; i > 2; --i ) {
+		// 2 - bottom
+		if( planes[2].distanceToPoint( center ) < negRadius ) return false;
+		// 3 - top
+		if( planes[3].distanceToPoint( center ) < negRadius ) return false;
+		//}
+
+		return true;
+
+	},
+
+	intersectsObjectOld: function () {
 
 		var sphere = new Sphere();
 
