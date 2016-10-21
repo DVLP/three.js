@@ -39,6 +39,12 @@ function ascSort( a, b ) {
 
 }
 
+function descSort(a, b) {
+
+  return a.distance - b.distance;
+
+}
+
 function intersectObject( object, raycaster, intersects, recursive ) {
 
 	if ( object.visible === false ) return;
@@ -132,5 +138,179 @@ Raycaster.prototype = {
 
 };
 
+
+var intersectInvisibleObject = function(object, raycaster, intersects, recursive) {
+
+  object.raycast(raycaster, intersects);
+
+  if (recursive === true) {
+
+    console.warn('Do not use for recursion! Returning.');
+    return;
+
+  }
+
+};
+
+Raycaster.prototype.intersectInvisibleObjects = function(objects, recursive) {
+
+  var intersects = [];
+
+  if (Array.isArray(objects) === false) {
+
+    console.warn('THREE.Raycaster.intersectObjects: objects is not an Array.');
+    return intersects;
+
+  }
+
+  for (var i = 0, l = objects.length; i < l; i++) {
+
+    intersectInvisibleObject(objects[i], this, intersects, recursive);
+
+  }
+
+  intersects.sort(descSort);
+
+  return intersects;
+
+};
+
+Raycaster.prototype.intersectBBoxes = function(objects, recursive) {
+
+  var intersects = [];
+  var intersect = null;
+
+  for (var i = 0, l = objects.length; i < l; i++) {
+
+    var obj = objects[i];
+
+    if ((intersect = obj.raycastBBoxOnly(this))) {
+      intersect.object = obj;
+      intersects.push(intersect);
+    }
+
+  }
+
+  intersects.sort(descSort);
+
+  return intersects;
+
+};
+
+Raycaster.prototype.intersectRemote = function(data, callback, scene) {
+
+  var results = [];
+  var objCache = {};
+
+  this.ray.origin.fromArray(data.raycaster.origin);
+  this.ray.direction.fromArray(data.raycaster.direction);
+
+  this.near = data.raycaster.near || this.near;
+  this.far = data.raycaster.far || this.far;
+
+  for (var i = 0, j = data.items.length; i < j; ++i) {
+    var item = data.items[i],
+      intersects = [],
+      rootObject = scene;
+
+    if (item.root) {
+      rootObject = scene.getObjectByProperty('name', item.root.name);
+      rootObject.allTransformsFromArrays(item.root);
+    }
+
+    var obj = objCache[item.name];
+
+    if (!obj) {
+
+      if (item.name === 'terrainMesh') {
+
+        obj = objCache[item.name] = item;
+
+      } else {
+
+        obj = objCache[item.name] = rootObject.getObjectByProperty('name', item.name);
+
+        if (!obj || rootObject === obj) {
+
+          console.warn('No object with name: ', item.name, ' found');
+
+        }
+
+      }
+
+    }
+
+    if (item.name !== 'terrainMesh') {
+
+      obj.allTransformsFromArrays(item);
+
+    }
+
+    if (data.bboxOnly) {
+
+      // TODO: This was bbox version and should be separate from full intersection version
+      intersects = obj.raycastBBoxOnly(this);
+
+    } else {
+
+      if (item.name === 'window1') {
+        //debugger;
+      }
+      obj.raycast(this, intersects);
+
+    }
+
+    intersects && this.prepareAnswer(intersects, results, item.uuid);
+
+  }
+
+  if (typeof callback !== 'undefined') {
+
+    callback(results);
+
+  }
+
+  results.sort(function(a, b) {
+
+    return a.distance - b.distance;
+
+  });
+
+  return results;
+
+};
+
+Raycaster.prototype.prepareAnswer = function(intersects, results, uuid) {
+
+  // if returned value is function this is a bboxonly result
+  if (typeof intersects.length === 'function') {
+
+    results.push({
+      bboxOnly: true,
+      uuid: uuid,
+      point: intersects
+    });
+
+    return;
+  }
+
+  for (var i = 0, j = intersects.length; i < j; ++i) {
+
+    var intersect = intersects[i];
+
+    results.push({
+      bboxOnly: false,
+      uuid: uuid,
+      name: intersect.object.name,
+      distance: intersect.distance,
+      point: intersect.point.clone(),
+      face: intersect.face.clone(),
+      faceIndex: intersect.faceIndex,
+      uv: intersect.uv && intersect.uv.clone()
+    });
+
+  }
+
+};
 
 export { Raycaster };

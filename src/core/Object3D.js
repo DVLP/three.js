@@ -119,6 +119,55 @@ Object3D.prototype = {
 
 	},
 
+
+	// copy position, rotation and scale from source object
+	allTransformsFromArrays: function(source) {
+
+	  this.position.fromArray(source.position);
+	  this.rotation.fromArray(source.rotation);
+	  this.scale.fromArray(source.scale);
+	  this.updateMatrix();
+	  this.updateMatrixWorldNoChildren();
+
+	},
+
+	// find ancestor who's directly on the scene
+	// if the object is directly on the scene returns false
+	getRoot: function() {
+
+	  if (this.isRoot()) {
+	    return false;
+	  }
+
+	  var parent = this.parent;
+
+	  // get to the root element directly on scene
+	  while (parent !== null && !parent.isRoot()) {
+	    parent = parent.parent;
+	  }
+
+	  return parent;
+
+	},
+
+	isRoot: function() {
+
+	  if (!this.parent) {
+	    return true;
+	  }
+
+	},
+
+	getScene: function() {
+
+		if (this.isRoot()) {
+			return this.parent;
+		} else {
+			return this.getRoot().parent;
+		}
+
+	},
+
 	setRotationFromAxisAngle: function ( axis, angle ) {
 
 		// assumes axis is normalized
