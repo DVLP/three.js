@@ -447,8 +447,6 @@ Mesh.prototype.raycastBBoxOnly = (function() {
 
 		if (geometry.boundingSphere === null) geometry.computeBoundingSphere(this.scale);
 
-		var matrixWorld = this.matrixWorld;
-
 		// optimization to getWorldPosition is only faster if getWorldPosition is also optimized!
 		var sphereDist = Math.abs(raycaster.ray.distanceToPoint( this.getWorldPosition() )) - geometry.boundingSphere.radius;
 
@@ -457,7 +455,7 @@ Mesh.prototype.raycastBBoxOnly = (function() {
 		}
 
 		// Check boundingBox before continuing
-		inverseMatrix.getInverse( matrixWorld );
+		inverseMatrix.getInverse( this.matrixWorld );
 		ray.copy( raycaster.ray ).applyMatrix4( inverseMatrix );
 
 		if ( geometry.boundingBox === null ) {
@@ -467,7 +465,7 @@ Mesh.prototype.raycastBBoxOnly = (function() {
 		if (boxIntersect === null) {
 			return;
 		}
-		var boxDist = raycaster.ray.origin.distanceTo( boxIntersect.add( this.position ) );
+		var boxDist = ray.origin.distanceTo( boxIntersect );
 
 		if ( boxDist > maxDist ) {
 			return;
