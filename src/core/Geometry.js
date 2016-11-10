@@ -704,6 +704,8 @@ Geometry.prototype = {
 
 		this.boundingSphere.setFromPoints( this.vertices );
 
+		return this.boundingSphere;
+
 	},
 
 	merge: function ( geometry, matrix, materialIndexOffset ) {
