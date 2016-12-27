@@ -53,7 +53,7 @@ Audio.prototype = Object.assign( Object.create( Object3D.prototype ), {
 
 	copy: function (threeAudio) {
 
-		this.source.buffer = threeAudio.source.buffer;
+		this.buffer = threeAudio.buffer;
 		return this;
 
 	},
