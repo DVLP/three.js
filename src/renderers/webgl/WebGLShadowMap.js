@@ -251,12 +251,12 @@ function WebGLShadowMap( _renderer, _lights, _objects, capabilities ) {
 					0.0, 0.0, 0.0, 1.0
 				);
 
-				shadowMatrix.multiply( shadowCamera.projectionMatrix );
-				shadowMatrix.multiply( shadowCamera.matrixWorldInverse );
+				shadowMatrix.multiplyIncludingBottomRow( shadowCamera.projectionMatrix );
+				shadowMatrix.multiplyIncludingBottomRow( shadowCamera.matrixWorldInverse );
 
 				// update camera matrices and frustum
 
-				_projScreenMatrix.multiplyMatrices( shadowCamera.projectionMatrix, shadowCamera.matrixWorldInverse );
+				_projScreenMatrix.multiplyMatricesIncludingBottomRow( shadowCamera.projectionMatrix, shadowCamera.matrixWorldInverse );
 				_frustum.setFromMatrix( _projScreenMatrix );
 
 				// set object matrices & frustum culling

@@ -1107,7 +1107,7 @@ function WebGLRenderer( parameters ) {
 
 		camera.matrixWorldInverse.getInverse( camera.matrixWorld );
 
-		_projScreenMatrix.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
+		_projScreenMatrix.multiplyMatricesIncludingBottomRow( camera.projectionMatrix, camera.matrixWorldInverse );
 		_frustum.setFromMatrix( _projScreenMatrix );
 
 		lights.length = 0;
