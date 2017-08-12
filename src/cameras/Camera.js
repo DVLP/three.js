@@ -2,6 +2,7 @@ import { Matrix4 } from '../math/Matrix4';
 import { Quaternion } from '../math/Quaternion';
 import { Object3D } from '../core/Object3D';
 import { Vector3 } from '../math/Vector3';
+import { Vector2 } from '../math/Vector2';
 
 /**
  * @author mrdoob / http://mrdoob.com/
@@ -17,7 +18,8 @@ function Camera() {
 
 	this.matrixWorldInverse = new Matrix4();
 	this.projectionMatrix = new Matrix4();
-	this.triangle = [new Vector3(), new Vector3(), new Vector3()];
+	this.triangle = [new Vector2(), new Vector2(), new Vector2()];
+	this.worldPos = new Vector3();
 
 }
 
@@ -191,10 +193,11 @@ Camera.prototype.inFov = function(object) {
 Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDistance) {
 // 1 is default - looking straight + the bigger the steeper looking up or down the larger angle of view around
   var viewWidthMultiplier = 1 + Math.pow(Math.abs(polarAngle - Math.PI / 2), 3);
+  const worldPos = this.worldPos = this.getWorldPosition();
 
-  var p1 = {x: this.getWorldPosition().x, y: this.getWorldPosition().z},
+  //var p1 = { x: worldPos.x, y: worldPos.z },
     //angleOfViewV = this.fov * Math.PI / 180,
-    angleOfView = Math.max(-Math.PI + 0.1, Math.min(Math.PI - 0.1, (this.fov * this.aspect) * Math.PI / 180 * viewWidthMultiplier)), // viewWidthFactor: when looking up or down the angle gets wider
+    var angleOfView = Math.max(-Math.PI + 0.1, Math.min(Math.PI - 0.1, (this.fov * this.aspect) * Math.PI / 180 * viewWidthMultiplier)), // viewWidthFactor: when looking up or down the angle gets wider
     theta = -azimuthalAngle - Math.PI / 2,
     //phi = -this.orbitControls.getPolarAngle() - Math.PI / 2,
     angle1 = theta - angleOfView / 2,
@@ -203,13 +206,17 @@ Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDist
     // angle2V = phi + angleOfViewV / 2,
     distance = drawDistance / viewWidthMultiplier; // viewWidthFactor: but distance gets smaller
 
-  // triangle horizontal
-  var p3 = {x: p1.x + Math.cos(angle1) * distance, y: p1.y + Math.sin(angle1) * distance},
-    p2 = {x: p1.x + Math.cos(angle2) * distance, y: p1.y + Math.sin(angle2) * distance};
+  // triangle vertical
   // p5 = {x: p1.x + Math.cos(angle1V) * distance, y: p1.y + Math.sin(angle1V) * distance},
   // p4 = {x: p1.x + Math.cos(angle2V) * distance, y: p1.y + Math.sin(angle2V) * distance};
 
-  this.triangle = this.triangle = [p1, p2, p3];
+  this.triangle[0].x = worldPos.x;
+  this.triangle[0].y = worldPos.z;
+  this.triangle[1].x = worldPos.x + Math.cos(angle2) * distance;
+  this.triangle[1].y = worldPos.z + Math.sin(angle2) * distance;
+  this.triangle[2].x = worldPos.x + Math.cos(angle1) * distance;
+  this.triangle[2].y = worldPos.z + Math.sin(angle1) * distance;
+
   //this.triangleV = this.triangleV = [p1, p4, p5];
 
   // help in debugging where is triangle

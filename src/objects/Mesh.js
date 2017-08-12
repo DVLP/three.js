@@ -27,6 +27,7 @@ function Mesh( geometry, material ) {
 	this.material = material !== undefined ? material : new MeshBasicMaterial( { color: Math.random() * 0xffffff } );
 
 	this.drawMode = TrianglesDrawMode;
+	this.lod = [];
 
 	this.updateMorphTargets();
 
@@ -49,6 +50,7 @@ Mesh.prototype = Object.assign( Object.create( Object3D.prototype ), {
 		Object3D.prototype.copy.call( this, source );
 
 		this.drawMode = source.drawMode;
+		this.lod = source.lod;
 
 		return this;
 

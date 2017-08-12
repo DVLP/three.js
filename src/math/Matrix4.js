@@ -414,9 +414,6 @@ Matrix4.prototype = {
 		// te[ 7 ] = 0 + 0 + 0 + 0; // no need to overwrite zero
 		// te[ 11 ] = 0 + 0 + 0 + 0; // no need to overwrite zero
 		// te[ 15 ] = 0 + 0 + 0 + 1; // no need to overwrite one
-
-		return this;
-
 	},
 
 	multiplyMatricesIncludingBottomRow: function ( a, b ) {
