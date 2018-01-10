@@ -30,6 +30,7 @@ import { WebGLClipping } from './webgl/WebGLClipping';
 import { Frustum } from '../math/Frustum';
 import { Vector4 } from '../math/Vector4';
 import { Color } from '../math/Color';
+import { Points } from '../objects/Points';
 
 /**
  * @author supereggbert / http://www.paulbrunt.co.uk/
@@ -1412,6 +1413,9 @@ function WebGLRenderer( parameters ) {
 					var material = object.material;
 
 					if ( material.visible === true ) {
+						if ( material.opacity === 0 ) {
+							return;
+						}
 
 						if ( _this.sortObjects === true ) {
 
@@ -1457,7 +1461,7 @@ function WebGLRenderer( parameters ) {
 		object.updated = false;
 
 		// only continue with children if object is visible in scene or this is Scene(not in frustum by default)
-		if( !object.inFrustum ) {
+		if( !object.inFrustum && object.type !== 'Object3D' ) { // and containers
 			return;
 		}
 

@@ -335,7 +335,7 @@ Vector3.prototype = {
 
 			if ( matrix === undefined ) matrix = new Matrix4();
 
-			matrix.multiplyMatrices( camera.projectionMatrix, matrix.getInverse( camera.matrixWorld ) );
+			matrix.multiplyMatricesIncludingBottomRow( camera.projectionMatrix, matrix.getInverse( camera.matrixWorld ) );
 			return this.applyMatrix4( matrix );
 
 		};
@@ -350,7 +350,7 @@ Vector3.prototype = {
 
 			if ( matrix === undefined ) matrix = new Matrix4();
 
-			matrix.multiplyMatrices( camera.matrixWorld, matrix.getInverse( camera.projectionMatrix ) );
+			matrix.multiplyMatricesIncludingBottomRow( camera.matrixWorld, matrix.getInverse( camera.projectionMatrix ) );
 			return this.applyMatrix4( matrix );
 
 		};
