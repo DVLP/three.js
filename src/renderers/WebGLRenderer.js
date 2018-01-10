@@ -6,8 +6,8 @@ import { WebGLUniforms } from './webgl/WebGLUniforms.js';
 import { UniformsLib } from './shaders/UniformsLib.js';
 import { UniformsUtils } from './shaders/UniformsUtils.js';
 import { ShaderLib } from './shaders/ShaderLib.js';
-import { WebGLFlareRenderer } from './webgl/WebGLFlareRenderer.js';
-import { WebGLSpriteRenderer } from './webgl/WebGLSpriteRenderer.js';
+// import { WebGLFlareRenderer } from './webgl/WebGLFlareRenderer.js';
+// import { WebGLSpriteRenderer } from './webgl/WebGLSpriteRenderer.js';
 import { WebGLShadowMap } from './webgl/WebGLShadowMap.js';
 import { WebGLAttributes } from './webgl/WebGLAttributes.js';
 import { WebGLBackground } from './webgl/WebGLBackground.js';
@@ -30,6 +30,36 @@ import { WebGLClipping } from './webgl/WebGLClipping.js';
 import { Frustum } from '../math/Frustum.js';
 import { Vector4 } from '../math/Vector4.js';
 import { WebGLUtils } from './webgl/WebGLUtils.js';
+// import { REVISION, MaxEquation, MinEquation, RGB_ETC1_Format, RGBA_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGB_PVRTC_2BPPV1_Format, RGB_PVRTC_4BPPV1_Format, RGBA_S3TC_DXT5_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT1_Format, RGB_S3TC_DXT1_Format, SrcAlphaSaturateFactor, OneMinusDstColorFactor, DstColorFactor, OneMinusDstAlphaFactor, DstAlphaFactor, OneMinusSrcAlphaFactor, SrcAlphaFactor, OneMinusSrcColorFactor, SrcColorFactor, OneFactor, ZeroFactor, ReverseSubtractEquation, SubtractEquation, AddEquation, DepthFormat, DepthStencilFormat, LuminanceAlphaFormat, LuminanceFormat, RGBAFormat, RGBFormat, AlphaFormat, HalfFloatType, FloatType, UnsignedIntType, IntType, UnsignedShortType, ShortType, ByteType, UnsignedInt248Type, UnsignedShort565Type, UnsignedShort5551Type, UnsignedShort4444Type, UnsignedByteType, LinearMipMapLinearFilter, LinearMipMapNearestFilter, LinearFilter, NearestMipMapLinearFilter, NearestMipMapNearestFilter, NearestFilter, MirroredRepeatWrapping, ClampToEdgeWrapping, RepeatWrapping, FrontFaceDirectionCW, NoBlending, BackSide, DoubleSide, TriangleFanDrawMode, TriangleStripDrawMode, TrianglesDrawMode, NoColors, FlatShading, LinearToneMapping } from '../constants';
+// // import { LensFlarePlugin } from './webgl/plugins/LensFlarePlugin';
+// // import { SpritePlugin } from './webgl/plugins/SpritePlugin';
+// import { WebGLShadowMap } from './webgl/WebGLShadowMap';
+// import { ShaderMaterial } from '../materials/ShaderMaterial';
+// import { Mesh } from '../objects/Mesh';
+// import { BoxBufferGeometry } from '../geometries/BoxGeometry';
+// import { PlaneBufferGeometry } from '../geometries/PlaneGeometry';
+// import { MeshBasicMaterial } from '../materials/MeshBasicMaterial';
+// import { PerspectiveCamera } from '../cameras/PerspectiveCamera';
+// import { OrthographicCamera } from '../cameras/OrthographicCamera';
+// import { WebGLIndexedBufferRenderer } from './webgl/WebGLIndexedBufferRenderer';
+// import { WebGLBufferRenderer } from './webgl/WebGLBufferRenderer';
+// import { WebGLLights } from './webgl/WebGLLights';
+// import { WebGLPrograms } from './webgl/WebGLPrograms';
+// import { WebGLObjects } from './webgl/WebGLObjects';
+// import { WebGLTextures } from './webgl/WebGLTextures';
+// import { WebGLProperties } from './webgl/WebGLProperties';
+// import { WebGLState } from './webgl/WebGLState';
+// import { WebGLCapabilities } from './webgl/WebGLCapabilities';
+// import { BufferGeometry } from '../core/BufferGeometry';
+// import { WebGLExtensions } from './webgl/WebGLExtensions';
+// import { Vector3 } from '../math/Vector3';
+// import { Sphere } from '../math/Sphere';
+// import { WebGLClipping } from './webgl/WebGLClipping';
+// import { Frustum } from '../math/Frustum';
+// import { Vector4 } from '../math/Vector4';
+// import { Color } from '../math/Color';
+// import { Points } from '../objects/Points';
+// >>>>>>> Stashed changes
 
 /**
  * @author supereggbert / http://www.paulbrunt.co.uk/
@@ -260,7 +290,7 @@ function WebGLRenderer( parameters ) {
 	var programCache, renderLists;
 
 	var background, morphtargets, bufferRenderer, indexedBufferRenderer;
-	var flareRenderer, spriteRenderer;
+	// var flareRenderer, spriteRenderer;
 
 	var utils;
 
@@ -299,8 +329,8 @@ function WebGLRenderer( parameters ) {
 		bufferRenderer = new WebGLBufferRenderer( _gl, extensions, _infoRender );
 		indexedBufferRenderer = new WebGLIndexedBufferRenderer( _gl, extensions, _infoRender );
 
-		flareRenderer = new WebGLFlareRenderer( _this, _gl, state, textures, capabilities );
-		spriteRenderer = new WebGLSpriteRenderer( _this, _gl, state, textures, capabilities );
+		// flareRenderer = new WebGLFlareRenderer( _this, _gl, state, textures, capabilities );
+		// spriteRenderer = new WebGLSpriteRenderer( _this, _gl, state, textures, capabilities );
 
 		_this.info.programs = programCache.programs;
 
@@ -875,13 +905,9 @@ function WebGLRenderer( parameters ) {
 
 		var geometryAttributes = geometry.attributes;
 
-		var programAttributes = program.getAttributes();
-
 		var materialDefaultAttributeValues = material.defaultAttributeValues;
 
-		for ( var name in programAttributes ) {
-
-			var programAttribute = programAttributes[ name ];
+		program.getAttributesMap().forEach(function (programAttribute, name) {
 
 			if ( programAttribute >= 0 ) {
 
@@ -896,7 +922,7 @@ function WebGLRenderer( parameters ) {
 
 					// TODO Attribute may not be available on context restore
 
-					if ( attribute === undefined ) continue;
+					if ( attribute === undefined ) return;
 
 					var buffer = attribute.buffer;
 					var type = attribute.type;
@@ -981,7 +1007,7 @@ function WebGLRenderer( parameters ) {
 
 			}
 
-		}
+		});
 
 		state.disableUnusedAttributes();
 
@@ -1090,12 +1116,13 @@ function WebGLRenderer( parameters ) {
 
 	this.render = function ( scene, camera, renderTarget, forceClear ) {
 
-		if ( ! ( camera && camera.isCamera ) ) {
+		// seems like an unnecessary step
+		// if ( ! ( camera && camera.isCamera ) ) {
 
-			console.error( 'THREE.WebGLRenderer.render: camera is not an instance of THREE.Camera.' );
-			return;
+		// 	console.error( 'THREE.WebGLRenderer.render: camera is not an instance of THREE.Camera.' );
+		// 	return;
 
-		}
+		// }
 
 		if ( _isContextLost ) return;
 
@@ -1119,9 +1146,9 @@ function WebGLRenderer( parameters ) {
 
 		}
 
-		scene.onBeforeRender( _this, scene, camera, renderTarget );
+		// scene.onBeforeRender( _this, scene, camera, renderTarget );
 
-		_projScreenMatrix.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
+		_projScreenMatrix.multiplyMatricesIncludingBottomRow( camera.projectionMatrix, camera.matrixWorldInverse );
 		_frustum.setFromMatrix( _projScreenMatrix );
 
 		lightsArray.length = 0;
@@ -1136,7 +1163,16 @@ function WebGLRenderer( parameters ) {
 		currentRenderList = renderLists.get( scene, camera );
 		currentRenderList.init();
 
-		projectObject( scene, camera, _this.sortObjects );
+		// projectObject( scene, camera, _this.sortObjects );
+		var children = scene.children;
+		for ( var i = 0, l = children.length; i < l; i ++ ) {
+			projectObject( children[ i ], camera, _this.sortObjects, false );
+		}
+
+		// Objects which are hacked into scene will be skipped in above loop i.e. if they are children
+		for(var j = 0, jl = scene.hackedIntoScene.length; j < jl; j++){
+			projectObject( scene.hackedIntoScene[j], camera, _this.sortObjects, true );
+		}
 
 		if ( _this.sortObjects === true ) {
 
@@ -1168,7 +1204,7 @@ function WebGLRenderer( parameters ) {
 
 		//
 
-		background.render( currentRenderList, scene, camera, forceClear );
+		// background.render( currentRenderList, scene, camera, forceClear );
 
 		// render scene
 
@@ -1196,8 +1232,8 @@ function WebGLRenderer( parameters ) {
 
 		// custom renderers
 
-		spriteRenderer.render( spritesArray, scene, camera );
-		flareRenderer.render( flaresArray, scene, camera, _currentViewport );
+		// spriteRenderer.render( spritesArray, scene, camera );
+		// flareRenderer.render( flaresArray, scene, camera, _currentViewport );
 
 		// Generate mipmap if we're using any kind of mipmap filtering
 
@@ -1209,13 +1245,15 @@ function WebGLRenderer( parameters ) {
 
 		// Ensure depth buffer writing is enabled so it can be cleared on next render
 
-		state.buffers.depth.setTest( true );
-		state.buffers.depth.setMask( true );
-		state.buffers.color.setMask( true );
+		// state.buffers.depth.setTest( true );
+		// state.buffers.depth.setMask( true );
+		// state.buffers.color.setMask( true );
+
+		// _gl.finish();
 
 		state.setPolygonOffset( false );
 
-		scene.onAfterRender( _this, scene, camera, renderTarget );
+		// scene.onAfterRender( _this, scene, camera, renderTarget );
 
 		if ( vr.enabled ) {
 
@@ -1234,17 +1272,17 @@ function WebGLRenderer( parameters ) {
 
 	function isObjectViewable( object ) {
 
-		var geometry = object.geometry;
+	// 	var geometry = object.geometry;
 
-		if ( geometry.boundingSphere === null )
-			geometry.computeBoundingSphere();
+	// 	if ( geometry.boundingSphere === null )
+	// 		geometry.computeBoundingSphere();
 
-		_sphere.copy( geometry.boundingSphere ).
-		applyMatrix4( object.matrixWorld );
+	//	_sphere.copy( geometry.boundingSphere ).
+	//	applyMatrix4( object.matrixWorld );
 
-		return isSphereViewable( _sphere );
+	// 	return isSphereViewable( _sphere );
 
-	}
+	// }
 
 	function isSpriteViewable( sprite ) {
 
@@ -1282,9 +1320,9 @@ function WebGLRenderer( parameters ) {
 	}
 	*/
 
-	function projectObject( object, camera, sortObjects ) {
+	function projectObject( object, camera, sortObjects, hackedIntoScene ) {
 
-		if ( object.visible === false ) return;
+		if ( object.visible === false || (!hackedIntoScene && object.hackedIntoScene) ) return;
 
 		var visible = object.layers.test( camera.layers );
 
@@ -1302,7 +1340,9 @@ function WebGLRenderer( parameters ) {
 
 			} else if ( object.isSprite ) {
 
-				if ( ! object.frustumCulled || _frustum.intersectsSprite( object ) ) {
+				if ( ! object.frustumCulled || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
+
+					object.inFrustum = true;
 
 					spritesArray.push( object );
 
@@ -1331,7 +1371,10 @@ function WebGLRenderer( parameters ) {
 
 				}
 
-				if ( ! object.frustumCulled || _frustum.intersectsObject( object ) ) {
+				// checking if object's parent is in frustum only is evil...
+				if ( ! object.frustumCulled || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
+
+					object.inFrustum = true;
 
 					if ( sortObjects ) {
 
@@ -1360,7 +1403,7 @@ function WebGLRenderer( parameters ) {
 
 						}
 
-					} else if ( material.visible ) {
+					} else if ( material.visible && material.opacity !== 0 ) {
 
 						currentRenderList.push( object, geometry, material, _vector3.z, null );
 
@@ -1370,6 +1413,13 @@ function WebGLRenderer( parameters ) {
 
 			}
 
+		}
+
+		object.updated = false;
+
+		// only continue with children if object is visible in scene or this is Scene(not in frustum by default)
+		if( !object.inFrustum && object.type !== 'Object3D' ) { // and containers
+			return;
 		}
 
 		var children = object.children;
@@ -1434,7 +1484,7 @@ function WebGLRenderer( parameters ) {
 
 	function renderObject( object, scene, camera, geometry, material, group ) {
 
-		object.onBeforeRender( _this, scene, camera, geometry, material, group );
+		// object.onBeforeRender( _this, scene, camera, geometry, material, group );
 
 		object.modelViewMatrix.multiplyMatrices( camera.matrixWorldInverse, object.matrixWorld );
 		object.normalMatrix.getNormalMatrix( object.modelViewMatrix );
@@ -1457,7 +1507,7 @@ function WebGLRenderer( parameters ) {
 
 		}
 
-		object.onAfterRender( _this, scene, camera, geometry, material, group );
+		// object.onAfterRender( _this, scene, camera, geometry, material, group );
 
 	}
 

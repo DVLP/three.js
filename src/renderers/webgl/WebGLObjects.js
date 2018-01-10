@@ -4,6 +4,14 @@
 
 function WebGLObjects( geometries, infoRender ) {
 
+	function makeMap( object ) {
+
+		var map = new Map();
+		for(var key in object) { object.hasOwnProperty(key) && map.set(key, object[key]); }
+		return map;
+
+	}
+
 	var updateList = {};
 
 	function update( object ) {
@@ -12,6 +20,11 @@ function WebGLObjects( geometries, infoRender ) {
 
 		var geometry = object.geometry;
 		var buffergeometry = geometries.get( object, geometry );
+
+		if( object.updated ) return object.geometry;
+
+		object.updated = true;
+
 
 		// Update once per frame
 

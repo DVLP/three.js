@@ -83,6 +83,11 @@ PositionalAudio.prototype = Object.assign( Object.create( Audio.prototype ), {
 
 			position.setFromMatrixPosition( this.matrixWorld );
 
+      if (isNaN(position.x)) {
+        console.warn('The panner position is NaN and it would crash the engine');
+        return;
+      }
+
 			this.panner.setPosition( position.x, position.y, position.z );
 
 		};
