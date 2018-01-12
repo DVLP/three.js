@@ -2,10 +2,8 @@
  * @author mrdoob / http://mrdoob.com/
  */
 
-import { Cache } from './Cache.js';
-import { DefaultLoadingManager } from './LoadingManager.js';
-
-var loading = {};
+import { Cache } from './Cache';
+import { DefaultLoadingManager } from './LoadingManager';
 
 function FileLoader( manager ) {
 
@@ -20,8 +18,6 @@ Object.assign( FileLoader.prototype, {
 		if ( url === undefined ) url = '';
 
 		if ( this.path !== undefined ) url = this.path + url;
-
-		url = this.manager.resolveURL( url );
 
 		var scope = this;
 
@@ -40,22 +36,6 @@ Object.assign( FileLoader.prototype, {
 			}, 0 );
 
 			return cached;
-
-		}
-
-		// Check if request is duplicate
-
-		if ( loading[ url ] !== undefined ) {
-
-			loading[ url ].push( {
-
-				onLoad: onLoad,
-				onProgress: onProgress,
-				onError: onError
-
-			} );
-
-			return;
 
 		}
 
@@ -84,7 +64,9 @@ Object.assign( FileLoader.prototype, {
 					case 'arraybuffer':
 					case 'blob':
 
-						var view = new Uint8Array( data.length );
+					 	response = new ArrayBuffer( data.length );
+
+						var view = new Uint8Array( response );
 
 						for ( var i = 0; i < data.length; i ++ ) {
 
@@ -94,11 +76,7 @@ Object.assign( FileLoader.prototype, {
 
 						if ( responseType === 'blob' ) {
 
-							response = new Blob( [ view.buffer ], { type: mimeType } );
-
-						} else {
-
-							response = view.buffer;
+							response = new Blob( [ response ], { type: mimeType } );
 
 						}
 
@@ -125,7 +103,7 @@ Object.assign( FileLoader.prototype, {
 
 				}
 
-				// Wait for next browser tick like standard XMLHttpRequest event dispatching does
+				// Wait for next browser tick
 				window.setTimeout( function () {
 
 					if ( onLoad ) onLoad( response );
@@ -136,12 +114,11 @@ Object.assign( FileLoader.prototype, {
 
 			} catch ( error ) {
 
-				// Wait for next browser tick like standard XMLHttpRequest event dispatching does
+				// Wait for next browser tick
 				window.setTimeout( function () {
 
 					if ( onError ) onError( error );
 
-					scope.manager.itemEnd( url );
 					scope.manager.itemError( url );
 
 				}, 0 );
@@ -150,40 +127,18 @@ Object.assign( FileLoader.prototype, {
 
 		} else {
 
-			// Initialise array for duplicate requests
-
-			loading[ url ] = [];
-
-			loading[ url ].push( {
-
-				onLoad: onLoad,
-				onProgress: onProgress,
-				onError: onError
-
-			} );
-
 			var request = new XMLHttpRequest();
-
 			request.open( 'GET', url, true );
 
 			request.addEventListener( 'load', function ( event ) {
 
-				var response = this.response;
+				var response = event.target.response;
 
 				Cache.add( url, response );
 
-				var callbacks = loading[ url ];
-
-				delete loading[ url ];
-
 				if ( this.status === 200 ) {
 
-					for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
-
-						var callback = callbacks[ i ];
-						if ( callback.onLoad ) callback.onLoad( response );
-
-					}
+					if ( onLoad ) onLoad( response );
 
 					scope.manager.itemEnd( url );
 
@@ -194,58 +149,34 @@ Object.assign( FileLoader.prototype, {
 
 					console.warn( 'THREE.FileLoader: HTTP Status 0 received.' );
 
-					for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
-
-						var callback = callbacks[ i ];
-						if ( callback.onLoad ) callback.onLoad( response );
-
-					}
+					if ( onLoad ) onLoad( response );
 
 					scope.manager.itemEnd( url );
 
 				} else {
 
-					for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
+					if ( onError ) onError( event );
 
-						var callback = callbacks[ i ];
-						if ( callback.onError ) callback.onError( event );
-
-					}
-
-					scope.manager.itemEnd( url );
 					scope.manager.itemError( url );
 
 				}
 
 			}, false );
 
-			request.addEventListener( 'progress', function ( event ) {
+			if ( onProgress !== undefined ) {
 
-				var callbacks = loading[ url ];
+				request.addEventListener( 'progress', function ( event ) {
 
-				for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
+					onProgress( event );
 
-					var callback = callbacks[ i ];
-					if ( callback.onProgress ) callback.onProgress( event );
+				}, false );
 
-				}
-
-			}, false );
+			}
 
 			request.addEventListener( 'error', function ( event ) {
 
-				var callbacks = loading[ url ];
+				if ( onError ) onError( event );
 
-				delete loading[ url ];
-
-				for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
-
-					var callback = callbacks[ i ];
-					if ( callback.onError ) callback.onError( event );
-
-				}
-
-				scope.manager.itemEnd( url );
 				scope.manager.itemError( url );
 
 			}, false );
@@ -254,12 +185,6 @@ Object.assign( FileLoader.prototype, {
 			if ( this.withCredentials !== undefined ) request.withCredentials = this.withCredentials;
 
 			if ( request.overrideMimeType ) request.overrideMimeType( this.mimeType !== undefined ? this.mimeType : 'text/plain' );
-
-			for ( var header in this.requestHeader ) {
-
-				request.setRequestHeader( header, this.requestHeader[ header ] );
-
-			}
 
 			request.send( null );
 
@@ -295,13 +220,6 @@ Object.assign( FileLoader.prototype, {
 	setMimeType: function ( value ) {
 
 		this.mimeType = value;
-		return this;
-
-	},
-
-	setRequestHeader: function ( value ) {
-
-		this.requestHeader = value;
 		return this;
 
 	}

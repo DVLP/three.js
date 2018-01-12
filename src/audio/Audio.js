@@ -308,12 +308,6 @@ Audio.prototype = Object.assign( Object.create( Object3D.prototype ), {
 
 	},
 
-	getVolume: function () {
-
-		return this.gain.gain.value;
-
-	}
-
 } );
 
 export { Audio };

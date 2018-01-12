@@ -23,43 +23,13 @@ import { WebGLTextures } from './webgl/WebGLTextures.js';
 import { WebGLProperties } from './webgl/WebGLProperties.js';
 import { WebGLState } from './webgl/WebGLState.js';
 import { WebGLCapabilities } from './webgl/WebGLCapabilities.js';
-import { WebVRManager } from './webvr/WebVRManager.js';
+// import { WebVRManager } from './webvr/WebVRManager.js';
 import { WebGLExtensions } from './webgl/WebGLExtensions.js';
 import { Vector3 } from '../math/Vector3.js';
 import { WebGLClipping } from './webgl/WebGLClipping.js';
 import { Frustum } from '../math/Frustum.js';
 import { Vector4 } from '../math/Vector4.js';
 import { WebGLUtils } from './webgl/WebGLUtils.js';
-// import { REVISION, MaxEquation, MinEquation, RGB_ETC1_Format, RGBA_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGB_PVRTC_2BPPV1_Format, RGB_PVRTC_4BPPV1_Format, RGBA_S3TC_DXT5_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT1_Format, RGB_S3TC_DXT1_Format, SrcAlphaSaturateFactor, OneMinusDstColorFactor, DstColorFactor, OneMinusDstAlphaFactor, DstAlphaFactor, OneMinusSrcAlphaFactor, SrcAlphaFactor, OneMinusSrcColorFactor, SrcColorFactor, OneFactor, ZeroFactor, ReverseSubtractEquation, SubtractEquation, AddEquation, DepthFormat, DepthStencilFormat, LuminanceAlphaFormat, LuminanceFormat, RGBAFormat, RGBFormat, AlphaFormat, HalfFloatType, FloatType, UnsignedIntType, IntType, UnsignedShortType, ShortType, ByteType, UnsignedInt248Type, UnsignedShort565Type, UnsignedShort5551Type, UnsignedShort4444Type, UnsignedByteType, LinearMipMapLinearFilter, LinearMipMapNearestFilter, LinearFilter, NearestMipMapLinearFilter, NearestMipMapNearestFilter, NearestFilter, MirroredRepeatWrapping, ClampToEdgeWrapping, RepeatWrapping, FrontFaceDirectionCW, NoBlending, BackSide, DoubleSide, TriangleFanDrawMode, TriangleStripDrawMode, TrianglesDrawMode, NoColors, FlatShading, LinearToneMapping } from '../constants';
-// // import { LensFlarePlugin } from './webgl/plugins/LensFlarePlugin';
-// // import { SpritePlugin } from './webgl/plugins/SpritePlugin';
-// import { WebGLShadowMap } from './webgl/WebGLShadowMap';
-// import { ShaderMaterial } from '../materials/ShaderMaterial';
-// import { Mesh } from '../objects/Mesh';
-// import { BoxBufferGeometry } from '../geometries/BoxGeometry';
-// import { PlaneBufferGeometry } from '../geometries/PlaneGeometry';
-// import { MeshBasicMaterial } from '../materials/MeshBasicMaterial';
-// import { PerspectiveCamera } from '../cameras/PerspectiveCamera';
-// import { OrthographicCamera } from '../cameras/OrthographicCamera';
-// import { WebGLIndexedBufferRenderer } from './webgl/WebGLIndexedBufferRenderer';
-// import { WebGLBufferRenderer } from './webgl/WebGLBufferRenderer';
-// import { WebGLLights } from './webgl/WebGLLights';
-// import { WebGLPrograms } from './webgl/WebGLPrograms';
-// import { WebGLObjects } from './webgl/WebGLObjects';
-// import { WebGLTextures } from './webgl/WebGLTextures';
-// import { WebGLProperties } from './webgl/WebGLProperties';
-// import { WebGLState } from './webgl/WebGLState';
-// import { WebGLCapabilities } from './webgl/WebGLCapabilities';
-// import { BufferGeometry } from '../core/BufferGeometry';
-// import { WebGLExtensions } from './webgl/WebGLExtensions';
-// import { Vector3 } from '../math/Vector3';
-// import { Sphere } from '../math/Sphere';
-// import { WebGLClipping } from './webgl/WebGLClipping';
-// import { Frustum } from '../math/Frustum';
-// import { Vector4 } from '../math/Vector4';
-// import { Color } from '../math/Color';
-// import { Points } from '../objects/Points';
-// >>>>>>> Stashed changes
 
 /**
  * @author supereggbert / http://www.paulbrunt.co.uk/
@@ -347,9 +317,9 @@ function WebGLRenderer( parameters ) {
 
 	// vr
 
-	var vr = new WebVRManager( _this );
+	// var vr = new WebVRManager( _this );
 
-	this.vr = vr;
+	// this.vr = vr;
 
 	// shadow map
 
@@ -412,14 +382,14 @@ function WebGLRenderer( parameters ) {
 
 	this.setSize = function ( width, height, updateStyle ) {
 
-		var device = vr.getDevice();
+		// var device = vr.getDevice();
 
-		if ( device && device.isPresenting ) {
+		// if ( device && device.isPresenting ) {
 
-			console.warn( 'THREE.WebGLRenderer: Can\'t change size while VR device is presenting.' );
-			return;
+		// 	console.warn( 'THREE.WebGLRenderer: Can\'t change size while VR device is presenting.' );
+		// 	return;
 
-		}
+		// }
 
 		_width = width;
 		_height = height;
@@ -555,7 +525,7 @@ function WebGLRenderer( parameters ) {
 		properties.dispose();
 		objects.dispose();
 
-		vr.dispose();
+		// vr.dispose();
 
 	};
 
@@ -1071,17 +1041,17 @@ function WebGLRenderer( parameters ) {
 
 		if ( isAnimating ) return;
 
-		var device = vr.getDevice();
+		// var device = vr.getDevice();
 
-		if ( device && device.isPresenting ) {
+		// if ( device && device.isPresenting ) {
 
-			device.requestAnimationFrame( loop );
+		// 	device.requestAnimationFrame( loop );
 
-		} else {
+		// } else {
 
 			window.requestAnimationFrame( loop );
 
-		}
+		// }
 
 		isAnimating = true;
 
@@ -1091,17 +1061,19 @@ function WebGLRenderer( parameters ) {
 
 		if ( onAnimationFrame !== null ) onAnimationFrame( time );
 
-		var device = vr.getDevice();
+		// var device = vr.getDevice();
 
-		if ( device && device.isPresenting ) {
+		// if ( device && device.isPresenting ) {
 
-			device.requestAnimationFrame( loop );
+		// 	device.requestAnimationFrame( loop );
 
-		} else {
+		// } else {
+
+			console.log('THREE LOOP DISABLE THIS!');
 
 			window.requestAnimationFrame( loop );
 
-		}
+		// }
 
 	}
 
@@ -1109,7 +1081,6 @@ function WebGLRenderer( parameters ) {
 
 		onAnimationFrame = callback;
 		start();
-
 	};
 
 	// Rendering
@@ -1140,11 +1111,11 @@ function WebGLRenderer( parameters ) {
 
 		if ( camera.parent === null ) camera.updateMatrixWorld();
 
-		if ( vr.enabled ) {
+		// if ( vr.enabled ) {
 
-			camera = vr.getCamera( camera );
+		// 	camera = vr.getCamera( camera );
 
-		}
+		// }
 
 		// scene.onBeforeRender( _this, scene, camera, renderTarget );
 
@@ -1255,11 +1226,11 @@ function WebGLRenderer( parameters ) {
 
 		// scene.onAfterRender( _this, scene, camera, renderTarget );
 
-		if ( vr.enabled ) {
+		// if ( vr.enabled ) {
 
-			vr.submitFrame();
+		// 	vr.submitFrame();
 
-		}
+		// }
 
 		// _gl.finish();
 
