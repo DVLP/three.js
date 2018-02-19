@@ -72,6 +72,26 @@ Camera.prototype = Object.assign( Object.create( Object3D.prototype ), {
 
 } );
 
+Camera.prototype.circleInFov = function(centrex, centrey, radius) {
+  var triangle = this.triangle,
+    angle1 = triangle[0].angle1,
+    angle2 = triangle[0].angle2,
+    v1x = triangle[0].x,
+    v1y = triangle[0].y,
+    v2x = triangle[1].x,
+    v2y = triangle[1].y,
+    v3x = triangle[2].x,
+    v3y = triangle[2].y;
+
+  if(!this.checkIfCircleOnInnerSideOfLine(v1x, v1y, v2x, v2y, angle1, centrex, centrey, radius)) {
+    return false;
+  }
+  if(this.checkIfCircleOnInnerSideOfLine(v1x, v1y, v3x, v3y, angle2, centrex, centrey, radius, -1)) {
+    return false;
+  }
+  return true;
+};
+
 Camera.prototype.sphereInFov = function(centrex, centrey, radius) {
 
   var triangle = this.triangle,
@@ -84,7 +104,7 @@ Camera.prototype.sphereInFov = function(centrex, centrey, radius) {
     len = 0;
 
   //
-  // TEST 1: Vertex within circle
+  // TEST 1: Vertex within circle - very low probability, waste of time?
   //
   var c1x = centrex - v1x,
     c1y = centrey - v1y;
@@ -178,7 +198,7 @@ Camera.prototype.inFov = function(object) {
     centrey = object.position.z,
     radius = bSphere.radius;
 
-  return this.sphereInFov(centrex, centrey, radius);
+  return this.circleInFov(centrex, centrey, radius);
 
 };
 
@@ -205,6 +225,8 @@ Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDist
   // p5 = {x: p1.x + Math.cos(angle1V) * distance, y: p1.y + Math.sin(angle1V) * distance},
   // p4 = {x: p1.x + Math.cos(angle2V) * distance, y: p1.y + Math.sin(angle2V) * distance};
 
+  this.triangle[0].angle1 = angle1;
+  this.triangle[0].angle2 = angle2;
   this.triangle[0].x = worldPos.x;
   this.triangle[0].y = worldPos.z;
   this.triangle[1].x = worldPos.x + Math.cos(angle2) * distance;
@@ -237,4 +259,17 @@ Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDist
   // this.helperBox3.position.set(p5.x, p4.y, p1.y);
 };
 
+// angle is angle of line
+Camera.prototype.checkIfCircleOnInnerSideOfLine = function (v1x, v1y, v2x, v2y, angle, ccentreX, ccentreY, cradius, inverse = 1) {
+  var perpendicularAngle = angle + (0.5 * inverse);
+  // 1. find the furthest point from all triangle boundary lines
+  // 1.a left triangle arm, +0.5 for perpendicular angle to the line
+  var farPtX = ccentreX + cradius * Math.cos(perpendicularAngle);
+  var farPtY = ccentreY + cradius * Math.sin(perpendicularAngle);
+
+  // 2. check on which side of line the point is
+  var d = (farPtX - v1x) * (v2y - v1y) - (farPtY - v1y) * (v2x - v1x);
+
+  return d > 0 ? true : false;
+}
 export { Camera };

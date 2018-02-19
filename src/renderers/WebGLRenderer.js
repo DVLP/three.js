@@ -203,6 +203,7 @@ function WebGLRenderer( parameters ) {
 	// initialize
 
 	var _gl;
+	var _isWorker = self.document === undefined;
 
 	try {
 
@@ -736,7 +737,11 @@ function WebGLRenderer( parameters ) {
 
 		if ( index !== null ) {
 
-			attribute = attributes.get( index );
+			if(!(attribute = attributes.get( index ))) {
+				console.error('Error when trying to render object: ');
+				console.log(object);
+				return false;
+			}
 
 			renderer = indexedBufferRenderer;
 			renderer.setIndex( attribute );
@@ -1105,11 +1110,11 @@ function WebGLRenderer( parameters ) {
 
 		// update scene graph
 
-		if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
+		// if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
 
 		// update camera matrices and frustum
 
-		if ( camera.parent === null ) camera.updateMatrixWorld();
+		// if ( camera.parent === null ) camera.updateMatrixWorld();
 
 		// if ( vr.enabled ) {
 
@@ -1232,6 +1237,8 @@ function WebGLRenderer( parameters ) {
 
 		// }
 
+		// for workers only
+		_isWorker && _gl.commit();
 		// _gl.finish();
 
 	};
