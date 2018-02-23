@@ -72,21 +72,26 @@ Camera.prototype = Object.assign( Object.create( Object3D.prototype ), {
 
 } );
 
-Camera.prototype.circleInFov = function(centrex, centrey, radius) {
-  var triangle = this.triangle,
-    angle1 = triangle[0].angle1,
-    angle2 = triangle[0].angle2,
-    v1x = triangle[0].x,
-    v1y = triangle[0].y,
-    v2x = triangle[1].x,
-    v2y = triangle[1].y,
-    v3x = triangle[2].x,
-    v3y = triangle[2].y;
+self.dupor = 0;
 
-  if(!this.checkIfCircleOnInnerSideOfLine(v1x, v1y, v2x, v2y, angle1, centrex, centrey, radius)) {
+Camera.prototype.circleInFov = function(centrex, centrey, radius) {
+    // angle1 = triangle[0].angle1,
+    // angle2 = triangle[0].angle2,
+    // v1x = triangle[0].x,
+    // v1y = triangle[0].y,
+    // v2x = triangle[1].x,
+    // v2y = triangle[1].y,
+    // v3x = triangle[2].x,
+    // v3y = triangle[2].y;
+
+  var edge1 = this.triangle[1];
+  var edge2 = this.triangle[2];
+  self.dupor++;
+
+  if(!this.checkIfCircleOnInnerSideOfLine(edge1.vxdelta, edge1.v1xvydelta, edge1.vydelta, edge1.v1yvxdelta, edge1.ppnAngleCos, edge1.ppnAngleSin, centrex, centrey, radius)) {
     return false;
   }
-  if(this.checkIfCircleOnInnerSideOfLine(v1x, v1y, v3x, v3y, angle2, centrex, centrey, radius, -1)) {
+  if(this.checkIfCircleOnInnerSideOfLine(edge2.vxdelta, edge2.v1xvydelta, edge2.vydelta, edge2.v1yvxdelta, edge2.ppnAngleCos, edge2.ppnAngleSin, centrex, centrey, radius)) {
     return false;
   }
   return true;
@@ -192,6 +197,9 @@ Camera.prototype.sphereInFov = function(centrex, centrey, radius) {
 };
 
 Camera.prototype.inFov = function(object) {
+  if (!this.fastFrustumRejection) {
+    return true;
+  }
 
   var bSphere = object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale),
     centrex = object.position.x,
@@ -234,6 +242,22 @@ Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDist
   this.triangle[2].x = worldPos.x + Math.cos(angle1) * distance;
   this.triangle[2].y = worldPos.z + Math.sin(angle1) * distance;
 
+
+  // chaced values for computations
+  this.triangle[1].vxdelta = this.triangle[1].x - this.triangle[0].x;
+  this.triangle[1].vydelta = this.triangle[1].y - this.triangle[0].y;
+  this.triangle[1].v1xvydelta = this.triangle[0].x * this.triangle[1].vydelta;
+  this.triangle[1].v1yvxdelta = this.triangle[0].y * this.triangle[1].vxdelta;
+  this.triangle[1].ppnAngleCos = Math.cos(angle1 + 0.5);
+  this.triangle[1].ppnAngleSin = Math.sin(angle1 + 0.5);
+
+  this.triangle[2].vxdelta = this.triangle[2].x - this.triangle[0].x;
+  this.triangle[2].vydelta = this.triangle[2].y - this.triangle[0].y;
+  this.triangle[2].v1xvydelta = this.triangle[0].x * this.triangle[2].vydelta;
+  this.triangle[2].v1yvxdelta = this.triangle[0].y * this.triangle[2].vxdelta;
+  this.triangle[2].ppnAngleCos = Math.cos(angle2 - 0.5);
+  this.triangle[2].ppnAngleSin = Math.sin(angle2 - 0.5);
+
   //this.triangleV = this.triangleV = [p1, p4, p5];
 
   // help in debugging where is triangle
@@ -259,17 +283,68 @@ Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDist
   // this.helperBox3.position.set(p5.x, p4.y, p1.y);
 };
 
-// angle is angle of line
-Camera.prototype.checkIfCircleOnInnerSideOfLine = function (v1x, v1y, v2x, v2y, angle, ccentreX, ccentreY, cradius, inverse = 1) {
+// check on which side of line the point is - full version
+Camera.prototype.checkIfCircleOnInnerSideOfLineUNCUT = function (v1x, v1y, v2x, v2y, angle, ccentreX, ccentreY, cradius, inverse = 1) {
   var perpendicularAngle = angle + (0.5 * inverse);
   // 1. find the furthest point from all triangle boundary lines
   // 1.a left triangle arm, +0.5 for perpendicular angle to the line
-  var farPtX = ccentreX + cradius * Math.cos(perpendicularAngle);
-  var farPtY = ccentreY + cradius * Math.sin(perpendicularAngle);
+  var farPtX = ccentreX + cradius * Math.cos(perpendicularAngle); // TODO: CACHE Math.cos(perpendicularAngle) in updateTriangle as ppAngleCos
+  var farPtY = ccentreY + cradius * Math.sin(perpendicularAngle); // TODO: CACHE Math.sin(perpendicularAngle) in updateTriangle as ppAngleSin
 
   // 2. check on which side of line the point is
-  var d = (farPtX - v1x) * (v2y - v1y) - (farPtY - v1y) * (v2x - v1x);
+  var d = (farPtX - v1x) * (v2y - v1y) - (farPtY - v1y) * (v2x - v1x); // TODO: CACHE in updateTriangle like - farPtX * vYd - v1xvYd - farPtY * vXD - v1yvXD
 
   return d > 0 ? true : false;
 }
+(5 - 3) * 4
+// just like above but some calculations are cached and only calculated once per frame rather than for each object again and agagin
+Camera.prototype.checkIfCircleOnInnerSideOfLine = function (vxdelta, v1xvydelta, vydelta, v1yvxdelta, ppnAngleCos, ppnAngleSin, ccentreX, ccentreY, cradius) {
+  // 1. find the furthest point from all triangle boundary lines
+  // 1.a left triangle arm, +0.5 for perpendicular angle to the line
+  var farPtX = ccentreX + cradius * ppnAngleCos;
+  var farPtY = ccentreY + cradius * ppnAngleSin;
+
+  // 2. check on which side of line the point is
+  var d = (farPtX * vydelta - v1xvydelta) - (farPtY * vxdelta - v1yvxdelta);
+
+  return d > 0 ? true : false;
+}
+
+// Camera.prototype.checkIfCircleInTriangle = function(first_argument) {
+//   // given left edge
+//   var eg1 = {
+//       x: 5,
+//       y: 0,
+//       x2: 0,
+//       y2: 5,
+//       angle: 0.25
+//   }
+//   // given circle
+//   var circle = {
+//       x: 2,
+//       y: 2,
+//       r: 0.9,
+//   };
+
+//   // left edge
+
+//   // 1. find the furthest point from all triangle boundary lines
+//   // 1.a left triangle arm, +0.5 for perpendicular angle to the line
+//   var farPtA = {
+//       x: circle.x + circle.r * Math.cos(eg1.angle + 0.5),
+//       y: circle.y + circle.r * Math.sin(eg1.angle + 0.5),
+//   }
+
+//   // 2. check on which side of line the point is
+//   var d = (farPtA.x - eg1.x) * (eg1.y2 - eg1.y) - (farPtA.y - eg1.y) * (eg1.x2 - eg1.x);
+//   if(d > 0) {
+//     console.log('furthest circle point is still on right side of the line')
+//   }
+
+//   var furthestPointB = {
+//     x: circle.x + circle.r * Math.cos(angle2 - 0.5),
+//     y: circle.y + circle.r * Math.sin(angle2 - 0.5),
+//   }
+// };
+
 export { Camera };
