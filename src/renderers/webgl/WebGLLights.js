@@ -143,7 +143,7 @@ function WebGLLights() {
 			if(light.isSpotLight) {
 				spotLightsPool.push(light);
 
-				var distnace = vector3.setFromMatrixPosition(light.matrixWorld).distanceTo(camera.parent.position);
+				var distnace = vector3.setFromMatrixPosition(light.matrixWorld).distanceTo(camera.parent ? camera.parent.position : new Vector3(0, 0, 0));
 				var inFrustum = (light.parent && light.parent.inFrustum) ? 1 : 3; // not being in frustum makes lights 5 times less important than those in
 				if(!light.parent) {
 					inFrustum = camera.sphereInFov(light.position.x, light.position.z, 5) ? 1 : 3;
