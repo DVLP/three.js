@@ -83,7 +83,7 @@ function CubeCamera( near, far, cubeResolution ) {
 		renderTarget.activeCubeFace = 5;
 		renderer.render( scene, cameraNZ, renderTarget );
 
-		renderer.setRenderTarget( null );
+		// renderer.setRenderTarget( null );
 
 	};
 
@@ -94,13 +94,13 @@ function CubeCamera( near, far, cubeResolution ) {
 		for ( var i = 0; i < 6; i ++ ) {
 
 			renderTarget.activeCubeFace = i;
-			renderer.setRenderTarget( renderTarget );
+			// renderer.setRenderTarget( renderTarget );
 
 			renderer.clear( color, depth, stencil );
 
 		}
 
-		renderer.setRenderTarget( null );
+		// renderer.setRenderTarget( null );
 
 	};
 

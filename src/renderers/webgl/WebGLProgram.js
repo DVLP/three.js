@@ -133,6 +133,27 @@ function fetchAttributeLocations( gl, program ) {
 
 }
 
+function fetchAttributeLocationsMap ( gl, program, identifiers ) {
+
+	var attributes = new Map();
+
+	var n = gl.getProgramParameter( program, gl.ACTIVE_ATTRIBUTES );
+
+	for ( var i = 0; i < n; i ++ ) {
+
+		var info = gl.getActiveAttrib( program, i );
+		var name = info.name;
+
+		// console.log("THREE.WebGLProgram: ACTIVE VERTEX ATTRIBUTE:", name, i );
+
+		attributes.set(name, gl.getAttribLocation( program, name ));
+
+	}
+
+	return attributes;
+
+}
+
 function filterEmptyLine( string ) {
 
 	return string !== '';
@@ -615,7 +636,7 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters 
 
 	};
 
-	// set up caching for attribute locations
+	// set up caching for attribute locations map
 
 	var cachedAttributes;
 
@@ -628,6 +649,22 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters 
 		}
 
 		return cachedAttributes;
+
+	};
+
+	// set up caching for attribute locations map
+
+	var cachedAttributesMap;
+
+	this.getAttributesMap = function() {
+
+		if ( cachedAttributesMap === undefined ) {
+
+			cachedAttributesMap = fetchAttributeLocationsMap( gl, program );
+
+		}
+
+		return cachedAttributesMap;
 
 	};
 
