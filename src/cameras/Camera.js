@@ -225,7 +225,7 @@ Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDist
 
   //var p1 = { x: worldPos.x, y: worldPos.z },
     //angleOfViewV = this.fov * Math.PI / 180,
-    var angleOfView = Math.max(-Math.PI + 0.1, Math.min(Math.PI - 0.1, (this.fov * this.aspect) * Math.PI / 180 * viewWidthMultiplier)), // viewWidthFactor: when looking up or down the angle gets wider
+    var angleOfView = Math.max(-Math.PI + 0.1, Math.min(Math.PI - 0.1, (this.fov) * Math.PI / 180 * viewWidthMultiplier)), // viewWidthFactor: when looking up or down the angle gets wider
     theta = -azimuthalAngle - Math.PI / 2,
     //phi = -this.orbitControls.getPolarAngle() - Math.PI / 2,
     angle1 = theta - angleOfView / 2,
