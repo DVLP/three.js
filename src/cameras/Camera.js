@@ -223,9 +223,10 @@ Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDist
   var viewWidthMultiplier = 1 + Math.pow(Math.abs(polarAngle - Math.PI / 2), 3);
   const worldPos = this.worldPos.setFromMatrixPosition(this.matrixWorld);
 
-  //var p1 = { x: worldPos.x, y: worldPos.z },
+    //var p1 = { x: worldPos.x, y: worldPos.z },
     //angleOfViewV = this.fov * Math.PI / 180,
-    var angleOfView = Math.max(-Math.PI + 0.1, Math.min(Math.PI - 0.1, (this.fov) * Math.PI / 180 * viewWidthMultiplier)), // viewWidthFactor: when looking up or down the angle gets wider
+    var angle = this.getEffectiveFOV() * Math.max(1, this.aspect) * 1.1;
+    var angleOfView = Math.max(-Math.PI + 0.1, Math.min(Math.PI - 0.1, angle * Math.PI / 180 * viewWidthMultiplier)), // viewWidthFactor: when looking up or down the angle gets wider
     theta = -azimuthalAngle - Math.PI / 2,
     //phi = -this.orbitControls.getPolarAngle() - Math.PI / 2,
     angle1 = theta - angleOfView / 2,
