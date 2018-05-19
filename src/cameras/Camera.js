@@ -221,7 +221,7 @@ Camera.prototype.inFov = function(object) {
 Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDistance) {
 // 1 is default - looking straight + the bigger the steeper looking up or down the larger angle of view around
   var viewWidthMultiplier = 1 + Math.pow(Math.abs(polarAngle - Math.PI / 2), 3);
-  const worldPos = this.worldPos.setFromMatrixPosition(this.matrixWorld);
+  var worldPos = this.worldPos.setFromMatrixPosition(this.matrixWorld);
 
     //var p1 = { x: worldPos.x, y: worldPos.z },
     //angleOfViewV = this.fov * Math.PI / 180,
@@ -290,7 +290,8 @@ Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDist
 };
 
 // check on which side of line the point is - full version
-Camera.prototype.checkIfCircleOnInnerSideOfLineUNCUT = function (v1x, v1y, v2x, v2y, angle, ccentreX, ccentreY, cradius, inverse = 1) {
+Camera.prototype.checkIfCircleOnInnerSideOfLineUNCUT = function (v1x, v1y, v2x, v2y, angle, ccentreX, ccentreY, cradius, inverse) {
+  if (typeof inverse === 'undefined') inverse = 1;
   var perpendicularAngle = angle + (0.5 * inverse);
   // 1. find the furthest point from all triangle boundary lines
   // 1.a left triangle arm, +0.5 for perpendicular angle to the line
