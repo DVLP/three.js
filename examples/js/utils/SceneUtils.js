@@ -1,16 +1,19 @@
+import { Group, Mesh, Matrix4 } from '../../../src/Three'
+
+
 /**
  * @author alteredq / http://alteredqualia.com/
  */
 
-THREE.SceneUtils = {
+export const SceneUtils = {
 
 	createMultiMaterialObject: function ( geometry, materials ) {
 
-		var group = new THREE.Group();
+		var group = new Group();
 
 		for ( var i = 0, l = materials.length; i < l; i ++ ) {
 
-			group.add( new THREE.Mesh( geometry, materials[ i ] ) );
+			group.add( new Mesh( geometry, materials[ i ] ) );
 
 		}
 
@@ -28,7 +31,7 @@ THREE.SceneUtils = {
 
 	attach: function ( child, scene, parent ) {
 
-		child.applyMatrix( new THREE.Matrix4().getInverse( parent.matrixWorld ) );
+		child.applyMatrix( new Matrix4().getInverse( parent.matrixWorld ) );
 
 		scene.remove( child );
 		parent.add( child );

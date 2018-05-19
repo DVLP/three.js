@@ -35,12 +35,12 @@ import { WebGLProperties } from './webgl/WebGLProperties.js';
 import { WebGLRenderLists } from './webgl/WebGLRenderLists.js';
 import { WebGLRenderStates } from './webgl/WebGLRenderStates.js';
 import { WebGLShadowMap } from './webgl/WebGLShadowMap.js';
-import { WebGLSpriteRenderer } from './webgl/WebGLSpriteRenderer.js';
+// import { WebGLSpriteRenderer } from './webgl/WebGLSpriteRenderer.js';
 import { WebGLState } from './webgl/WebGLState.js';
 import { WebGLTextures } from './webgl/WebGLTextures.js';
 import { WebGLUniforms } from './webgl/WebGLUniforms.js';
 import { WebGLUtils } from './webgl/WebGLUtils.js';
-import { WebVRManager } from './webvr/WebVRManager.js';
+// import { WebVRManager } from './webvr/WebVRManager.js';
 
 /**
  * @author supereggbert / http://www.paulbrunt.co.uk/
@@ -172,6 +172,7 @@ function WebGLRenderer( parameters ) {
 	// initialize
 
 	var _gl;
+	var _isWorker = self.document === undefined;
 
 	try {
 
@@ -229,7 +230,7 @@ function WebGLRenderer( parameters ) {
 	var programCache, renderLists, renderStates;
 
 	var background, morphtargets, bufferRenderer, indexedBufferRenderer;
-	var spriteRenderer;
+	// var spriteRenderer;
 
 	var utils;
 
@@ -269,7 +270,7 @@ function WebGLRenderer( parameters ) {
 		bufferRenderer = new WebGLBufferRenderer( _gl, extensions, info );
 		indexedBufferRenderer = new WebGLIndexedBufferRenderer( _gl, extensions, info );
 
-		spriteRenderer = new WebGLSpriteRenderer( _this, _gl, state, textures, capabilities );
+		// spriteRenderer = new WebGLSpriteRenderer( _this, _gl, state, textures, capabilities );
 
 		info.programs = programCache.programs;
 
@@ -287,9 +288,9 @@ function WebGLRenderer( parameters ) {
 
 	// vr
 
-	var vr = new WebVRManager( _this );
+	// var vr = new WebVRManager( _this );
 
-	this.vr = vr;
+	// this.vr = vr;
 
 	// shadow map
 
@@ -352,14 +353,14 @@ function WebGLRenderer( parameters ) {
 
 	this.setSize = function ( width, height, updateStyle ) {
 
-		var device = vr.getDevice();
+		// var device = vr.getDevice();
 
-		if ( device && device.isPresenting ) {
+		// if ( device && device.isPresenting ) {
 
-			console.warn( 'THREE.WebGLRenderer: Can\'t change size while VR device is presenting.' );
-			return;
+		// 	console.warn( 'THREE.WebGLRenderer: Can\'t change size while VR device is presenting.' );
+		// 	return;
 
-		}
+		// }
 
 		_width = width;
 		_height = height;
@@ -502,7 +503,7 @@ function WebGLRenderer( parameters ) {
 		properties.dispose();
 		objects.dispose();
 
-		vr.dispose();
+		// vr.dispose();
 
 		stopAnimation();
 
@@ -715,7 +716,11 @@ function WebGLRenderer( parameters ) {
 
 		if ( index !== null ) {
 
-			attribute = attributes.get( index );
+			if(!(attribute = attributes.get( index ))) {
+				console.error('Error when trying to render object: ');
+				console.log(object);
+				return false;
+			}
 
 			renderer = indexedBufferRenderer;
 			renderer.setIndex( attribute );
@@ -852,13 +857,9 @@ function WebGLRenderer( parameters ) {
 
 		var geometryAttributes = geometry.attributes;
 
-		var programAttributes = program.getAttributes();
-
 		var materialDefaultAttributeValues = material.defaultAttributeValues;
 
-		for ( var name in programAttributes ) {
-
-			var programAttribute = programAttributes[ name ];
+		program.getAttributesMap().forEach(function (programAttribute, name) {
 
 			if ( programAttribute >= 0 ) {
 
@@ -873,7 +874,7 @@ function WebGLRenderer( parameters ) {
 
 					// TODO Attribute may not be available on context restore
 
-					if ( attribute === undefined ) continue;
+					if ( attribute === undefined ) return;
 
 					var buffer = attribute.buffer;
 					var type = attribute.type;
@@ -958,7 +959,7 @@ function WebGLRenderer( parameters ) {
 
 			}
 
-		}
+		});
 
 		state.disableUnusedAttributes();
 
@@ -1022,7 +1023,7 @@ function WebGLRenderer( parameters ) {
 
 		if ( isAnimating ) return;
 
-		requestAnimationLoopFrame();
+		// requestAnimationLoopFrame();
 
 		isAnimating = true;
 
@@ -1036,17 +1037,19 @@ function WebGLRenderer( parameters ) {
 
 	function requestAnimationLoopFrame() {
 
-		var device = vr.getDevice();
+		// var device = vr.getDevice();
 
-		if ( device && device.isPresenting ) {
+		// if ( device && device.isPresenting ) {
 
-			device.requestAnimationFrame( animationLoop );
+			// device.requestAnimationFrame( animationLoop );
 
-		} else {
+		// } else {
+
+			console.log('THREE LOOP DISABLE THIS!');
 
 			window.requestAnimationFrame( animationLoop );
 
-		}
+		// }
 
 	}
 
@@ -1071,12 +1074,13 @@ function WebGLRenderer( parameters ) {
 
 	this.render = function ( scene, camera, renderTarget, forceClear ) {
 
-		if ( ! ( camera && camera.isCamera ) ) {
+		// seems like an unnecessary step
+		// if ( ! ( camera && camera.isCamera ) ) {
 
-			console.error( 'THREE.WebGLRenderer.render: camera is not an instance of THREE.Camera.' );
-			return;
+		// 	console.error( 'THREE.WebGLRenderer.render: camera is not an instance of THREE.Camera.' );
+		// 	return;
 
-		}
+		// }
 
 		if ( _isContextLost ) return;
 
@@ -1088,26 +1092,26 @@ function WebGLRenderer( parameters ) {
 
 		// update scene graph
 
-		if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
+		// if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
 
 		// update camera matrices and frustum
 
-		if ( camera.parent === null ) camera.updateMatrixWorld();
+		// if ( camera.parent === null ) camera.updateMatrixWorld();
 
-		if ( vr.enabled ) {
+		// if ( vr.enabled ) {
 
-			camera = vr.getCamera( camera );
+		// 	camera = vr.getCamera( camera );
 
-		}
+		// }
 
 		//
 
 		currentRenderState = renderStates.get( scene, camera );
 		currentRenderState.init();
 
-		scene.onBeforeRender( _this, scene, camera, renderTarget );
+		// scene.onBeforeRender( _this, scene, camera, renderTarget );
 
-		_projScreenMatrix.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
+		_projScreenMatrix.multiplyMatricesIncludingBottomRow( camera.projectionMatrix, camera.matrixWorldInverse );
 		_frustum.setFromMatrix( _projScreenMatrix );
 
 		_localClippingEnabled = this.localClippingEnabled;
@@ -1116,7 +1120,16 @@ function WebGLRenderer( parameters ) {
 		currentRenderList = renderLists.get( scene, camera );
 		currentRenderList.init();
 
-		projectObject( scene, camera, _this.sortObjects );
+		// projectObject( scene, camera, _this.sortObjects );
+		var children = scene.children;
+		for ( var i = 0, l = children.length; i < l; i ++ ) {
+			projectObject( children[ i ], camera, _this.sortObjects, false );
+		}
+
+		// Objects which are hacked into scene will be skipped in above loop i.e. if they are children
+		for(var j = 0, jl = scene.hackedIntoScene.length; j < jl; j++){
+			projectObject( scene.hackedIntoScene[j], camera, _this.sortObjects, true );
+		}
 
 		if ( _this.sortObjects === true ) {
 
@@ -1150,7 +1163,7 @@ function WebGLRenderer( parameters ) {
 
 		//
 
-		background.render( currentRenderList, scene, camera, forceClear );
+		// background.render( currentRenderList, scene, camera, forceClear );
 
 		// render scene
 
@@ -1178,9 +1191,9 @@ function WebGLRenderer( parameters ) {
 
 		// custom renderers
 
-		var spritesArray = currentRenderState.state.spritesArray;
+		// var spritesArray = currentRenderState.state.spritesArray;
 
-		spriteRenderer.render( spritesArray, scene, camera );
+		// spriteRenderer.render( spritesArray, scene, camera );
 
 		// Generate mipmap if we're using any kind of mipmap filtering
 
@@ -1196,16 +1209,20 @@ function WebGLRenderer( parameters ) {
 		state.buffers.depth.setMask( true );
 		state.buffers.color.setMask( true );
 
+		// _gl.finish();
+
 		state.setPolygonOffset( false );
 
-		scene.onAfterRender( _this, scene, camera );
+		// scene.onAfterRender( _this, scene, camera );
 
-		if ( vr.enabled ) {
+		// if ( vr.enabled ) {
 
-			vr.submitFrame();
+		// 	vr.submitFrame();
 
-		}
+		// }
 
+		// for workers only
+		_isWorker && _gl.commit();
 		// _gl.finish();
 
 		currentRenderList = null;
@@ -1220,17 +1237,17 @@ function WebGLRenderer( parameters ) {
 
 	function isObjectViewable( object ) {
 
-		var geometry = object.geometry;
+	// 	var geometry = object.geometry;
 
-		if ( geometry.boundingSphere === null )
-			geometry.computeBoundingSphere();
+	// 	if ( geometry.boundingSphere === null )
+	// 		geometry.computeBoundingSphere();
 
-		_sphere.copy( geometry.boundingSphere ).
-		applyMatrix4( object.matrixWorld );
+	//	_sphere.copy( geometry.boundingSphere ).
+	//	applyMatrix4( object.matrixWorld );
 
-		return isSphereViewable( _sphere );
+	// 	return isSphereViewable( _sphere );
 
-	}
+	// }
 
 	function isSpriteViewable( sprite ) {
 
@@ -1268,9 +1285,9 @@ function WebGLRenderer( parameters ) {
 	}
 	*/
 
-	function projectObject( object, camera, sortObjects ) {
+	function projectObject( object, camera, sortObjects, hackedIntoScene ) {
 
-		if ( object.visible === false ) return;
+		if ( object.visible === false || (!hackedIntoScene && object.hackedIntoScene) ) return;
 
 		var visible = object.layers.test( camera.layers );
 
@@ -1288,7 +1305,9 @@ function WebGLRenderer( parameters ) {
 
 			} else if ( object.isSprite ) {
 
-				if ( ! object.frustumCulled || _frustum.intersectsSprite( object ) ) {
+				if ( ! object.frustumCulled || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
+
+					object.inFrustum = true;
 
 					currentRenderState.pushSprite( object );
 
@@ -1313,7 +1332,10 @@ function WebGLRenderer( parameters ) {
 
 				}
 
-				if ( ! object.frustumCulled || _frustum.intersectsObject( object ) ) {
+				// checking if object's parent is in frustum only is evil...
+				if ( ! object.frustumCulled || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
+
+					object.inFrustum = true;
 
 					if ( sortObjects ) {
 
@@ -1342,7 +1364,7 @@ function WebGLRenderer( parameters ) {
 
 						}
 
-					} else if ( material.visible ) {
+					} else if ( material.visible && material.opacity !== 0 ) {
 
 						currentRenderList.push( object, geometry, material, _vector3.z, null );
 
@@ -1352,6 +1374,13 @@ function WebGLRenderer( parameters ) {
 
 			}
 
+		}
+
+		object.updated = false;
+
+		// only continue with children if object is visible in scene or this is Scene(not in frustum by default)
+		if( !object.inFrustum && object.type !== 'Object3D' ) { // and containers
+			return;
 		}
 
 		var children = object.children;
@@ -1440,7 +1469,7 @@ function WebGLRenderer( parameters ) {
 
 		}
 
-		object.onAfterRender( _this, scene, camera, geometry, material, group );
+		// object.onAfterRender( _this, scene, camera, geometry, material, group );
 		currentRenderState = renderStates.get( scene, _currentArrayCamera || camera );
 
 	}

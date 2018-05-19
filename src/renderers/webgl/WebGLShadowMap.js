@@ -217,8 +217,8 @@ function WebGLShadowMap( _renderer, _objects, maxTextureSize ) {
 					0.0, 0.0, 0.0, 1.0
 				);
 
-				shadowMatrix.multiply( shadowCamera.projectionMatrix );
-				shadowMatrix.multiply( shadowCamera.matrixWorldInverse );
+				shadowMatrix.multiplyIncludingBottomRow( shadowCamera.projectionMatrix );
+				shadowMatrix.multiplyIncludingBottomRow( shadowCamera.matrixWorldInverse );
 
 			}
 
@@ -245,12 +245,15 @@ function WebGLShadowMap( _renderer, _objects, maxTextureSize ) {
 
 				// update camera matrices and frustum
 
-				_projScreenMatrix.multiplyMatrices( shadowCamera.projectionMatrix, shadowCamera.matrixWorldInverse );
+				_projScreenMatrix.multiplyMatricesIncludingBottomRow( shadowCamera.projectionMatrix, shadowCamera.matrixWorldInverse );
 				_frustum.setFromMatrix( _projScreenMatrix );
 
 				// set object matrices & frustum culling
 
-				renderObject( scene, camera, shadowCamera, isPointLight );
+				var children = scene.children;
+				for ( var i = 0, l = children.length; i < l; i ++ ) {
+					renderObject( children[ i ], camera, shadowCamera, isPointLight );
+				}
 
 			}
 
@@ -378,7 +381,7 @@ function WebGLShadowMap( _renderer, _objects, maxTextureSize ) {
 
 		if ( visible && ( object.isMesh || object.isLine || object.isPoints ) ) {
 
-			if ( object.castShadow && ( ! object.frustumCulled || _frustum.intersectsObject( object ) ) ) {
+			if ( object.castShadow && ( (object.parent && object.parent.inFrustum) || ( object.frustumCulled === false || (camera.inFov(object) && _frustum.intersectsObject( object ))) )) {
 
 				object.modelViewMatrix.multiplyMatrices( shadowCamera.matrixWorldInverse, object.matrixWorld );
 

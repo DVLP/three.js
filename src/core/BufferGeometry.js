@@ -10,6 +10,14 @@ import { Matrix3 } from '../math/Matrix3.js';
 import { _Math } from '../math/Math.js';
 import { arrayMax } from '../utils.js';
 
+function makeMap( object ) {
+
+	var map = new Map();
+	for(var key in object) { object.hasOwnProperty(key) && map.set(key, object[key]); }
+	return map;
+
+}
+
 /**
  * @author alteredq / http://alteredqualia.com/
  * @author mrdoob / http://mrdoob.com/
@@ -28,8 +36,10 @@ function BufferGeometry() {
 
 	this.index = null;
 	this.attributes = {};
+	this.attributesMap = null;
 
 	this.morphAttributes = {};
+	this.morphAttributesMap = null;
 
 	this.groups = [];
 
@@ -533,10 +543,12 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 		// morphs
 
-		for ( var name in geometry.morphTargets ) {
+		if( !geometry.morphTargetsMap ) {
+			geometry.morphTargetsMap = makeMap( geometry.morphTargets );
+		}
 
+		geometry.morphTargetsMap.forEach(function (morphTargets, name) {
 			var array = [];
-			var morphTargets = geometry.morphTargets[ name ];
 
 			for ( var i = 0, l = morphTargets.length; i < l; i ++ ) {
 
@@ -549,8 +561,7 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 			}
 
 			this.morphAttributes[ name ] = array;
-
-		}
+		});
 
 		// skinning
 
@@ -614,7 +625,7 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 	},
 
-	computeBoundingSphere: function () {
+	computeBoundingSphere: function ( scale ) {
 
 		var box = new Box3();
 		var vector = new Vector3();
@@ -650,7 +661,12 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 				}
 
-				this.boundingSphere.radius = Math.sqrt( maxRadiusSq );
+				if(scale && scale.x) {
+					this.boundingSphere.radius = Math.sqrt(maxRadiusSq) * Math.max(Math.max(Math.abs(scale.x), Math.abs(scale.y)), Math.abs(scale.z));
+				} else {
+					this.boundingSphere.radius = Math.sqrt(maxRadiusSq);
+				}
+
 
 				if ( isNaN( this.boundingSphere.radius ) ) {
 
@@ -659,6 +675,8 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 				}
 
 			}
+
+			return this.boundingSphere;
 
 		};
 

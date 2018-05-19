@@ -36,6 +36,8 @@ function Geometry() {
 	this.faceVertexUvs = [[]];
 
 	this.morphTargets = [];
+	this.morphTargetsMap = null;
+
 	this.morphNormals = [];
 
 	this.skinWeights = [];
@@ -683,6 +685,8 @@ Geometry.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 		}
 
 		this.boundingSphere.setFromPoints( this.vertices );
+
+		return this.boundingSphere;
 
 	},
 
@@ -1437,5 +1441,7 @@ Geometry.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 
 } );
 
+// legacy compatibility
+Geometry.prototype.computeTangents = function() {};
 
-export { Geometry };
+export { GeometryIdCount, Geometry };

@@ -318,7 +318,7 @@ Object.assign( Vector3.prototype, {
 
 		return function project( camera ) {
 
-			matrix.multiplyMatrices( camera.projectionMatrix, matrix.getInverse( camera.matrixWorld ) );
+			matrix.multiplyMatricesIncludingBottomRow( camera.projectionMatrix, matrix.getInverse( camera.matrixWorld ) );
 			return this.applyMatrix4( matrix );
 
 		};
@@ -331,7 +331,7 @@ Object.assign( Vector3.prototype, {
 
 		return function unproject( camera ) {
 
-			matrix.multiplyMatrices( camera.matrixWorld, matrix.getInverse( camera.projectionMatrix ) );
+			matrix.multiplyMatricesIncludingBottomRow( camera.matrixWorld, matrix.getInverse( camera.projectionMatrix ) );
 			return this.applyMatrix4( matrix );
 
 		};
