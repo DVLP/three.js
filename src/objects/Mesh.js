@@ -488,9 +488,9 @@ Mesh.prototype.raycastSphereOnly = (function() {
 Mesh.prototype.raycastBBoxOnly = (function() {
 	var ray = new Ray();
 	var inverseMatrix = new Matrix4();
-	var target = new Vector3();
 
-	return function raycastBBoxOnly(raycaster, intersects) {
+	return function raycastBBoxOnly(raycaster, predefinedTarget) {
+		var target = predefinedTarget || new Vector3();
 		var geometry = this.geometry;
 		var maxDist = raycaster.far;
 		// Checking boundingSphere distance to ray

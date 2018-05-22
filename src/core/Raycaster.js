@@ -248,7 +248,8 @@ Raycaster.prototype.intersectRemote = function(data, callback, scene) {
     if (data.bboxOnly) {
 
       // TODO: This was bbox version and should be separate from full intersection version
-      intersects = obj.raycastBBoxOnly(this);
+      var intersect = obj.raycastBBoxOnly(this);
+      intersect && intersects.push(intersect);
 
     } else {
 
@@ -259,13 +260,7 @@ Raycaster.prototype.intersectRemote = function(data, callback, scene) {
 
     }
 
-    intersects && this.prepareAnswer(intersects, results, item.uuid);
-
-  }
-
-  if (typeof callback !== 'undefined') {
-
-    callback(results);
+    intersects.length && this.prepareAnswer(intersects, results, item.uuid);
 
   }
 
@@ -274,6 +269,12 @@ Raycaster.prototype.intersectRemote = function(data, callback, scene) {
     return a.distance - b.distance;
 
   });
+
+  if (typeof callback !== 'undefined') {
+
+    callback(results);
+
+  }
 
   return results;
 
