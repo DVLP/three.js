@@ -195,10 +195,11 @@ Raycaster.prototype.intersectBBoxes = function(objects, recursive) {
 
 };
 
+var objCache = {};
+
 Raycaster.prototype.intersectRemote = function(data, callback, scene) {
 
   var results = [];
-  var objCache = {};
 
   this.ray.origin.fromArray(data.raycaster.origin);
   this.ray.direction.fromArray(data.raycaster.direction);
@@ -282,32 +283,28 @@ Raycaster.prototype.intersectRemote = function(data, callback, scene) {
 
 Raycaster.prototype.prepareAnswer = function(intersects, results, uuid) {
 
-  // if returned value is function this is a bboxonly result
-  if (typeof intersects.length === 'function') {
-
-    results.push({
-      bboxOnly: true,
-      uuid: uuid,
-      point: intersects
-    });
-
-    return;
-  }
-
   for (var i = 0, j = intersects.length; i < j; ++i) {
 
     var intersect = intersects[i];
 
-    results.push({
-      bboxOnly: false,
-      uuid: uuid,
-      name: intersect.object.name,
-      distance: intersect.distance,
-      point: intersect.point.clone(),
-      face: intersect.face.clone(),
-      faceIndex: intersect.faceIndex,
-      uv: intersect.uv && intersect.uv.clone()
-    });
+    if (intersect.isVector3) { // Vector3 intersect is for bboxonly intersection type
+      results.push({
+        bboxOnly: true,
+        uuid: uuid,
+        point: intersect,
+      });
+    } else {
+      results.push({
+        bboxOnly: false,
+        uuid: uuid,
+        name: intersect.object.name,
+        distance: intersect.distance,
+        point: intersect.point,
+        face: intersect.face,
+        faceIndex: intersect.faceIndex,
+        uv: intersect.uv && intersect.uv,
+      });
+    }
 
   }
 

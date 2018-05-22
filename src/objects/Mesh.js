@@ -239,9 +239,7 @@ Mesh.prototype = Object.assign( Object.create( Object3D.prototype ), {
 			if ( geometry.boundingSphere === null ) geometry.computeBoundingSphere(this.scale);
 
 
-			// optimization to getWorldPosition is only faster if getWorldPosition is also optimized!
-			var distanceToPoint = raycaster.ray.distanceToPoint( this.getWorldPosition() );
-			if ( distanceToPoint > geometry.boundingSphere.radius ) {
+			if ( raycaster.ray.distanceToPoint( this.getWorldPosition(tempA).add( geometry.boundingSphere.center ) ) > raycaster.far + geometry.boundingSphere.radius ) {
 				return;
 			}
 
@@ -260,9 +258,12 @@ Mesh.prototype = Object.assign( Object.create( Object3D.prototype ), {
 			if ( boxIntersects === null ) {
 				return;
 			}
+
 			var boxDist = ray.origin.distanceTo( boxIntersects );
 
-			if ( boxDist > raycaster.far ) {
+			// this one is tricky because if you're next to irregular shape the distance from bbox
+			// the distance to the bounding box can be increasing the closer you get to the actual shape
+			if ( boxDist > raycaster.far && !geometry.boundingBox.containsPoint(ray.origin) ) {
 				return;
 			}
 
@@ -488,6 +489,7 @@ Mesh.prototype.raycastSphereOnly = (function() {
 Mesh.prototype.raycastBBoxOnly = (function() {
 	var ray = new Ray();
 	var inverseMatrix = new Matrix4();
+	var tempPoint = new Vector3();
 
 	return function raycastBBoxOnly(raycaster, predefinedTarget) {
 		var target = predefinedTarget || new Vector3();
@@ -498,7 +500,7 @@ Mesh.prototype.raycastBBoxOnly = (function() {
 		if (geometry.boundingSphere === null) geometry.computeBoundingSphere(this.scale);
 
 		// optimization to getWorldPosition is only faster if getWorldPosition is also optimized!
-		var sphereDist = Math.abs(raycaster.ray.distanceToPoint( this.getWorldPosition() )) - geometry.boundingSphere.radius;
+		var sphereDist = raycaster.ray.distanceToPoint( this.getWorldPosition( tempPoint ) ) - geometry.boundingSphere.radius;
 
 		if ( sphereDist > 0 && sphereDist > maxDist ) {
 			return;
@@ -517,7 +519,7 @@ Mesh.prototype.raycastBBoxOnly = (function() {
 		}
 		var boxDist = ray.origin.distanceTo( boxIntersect );
 
-		if ( boxDist > maxDist ) {
+		if ( boxDist > maxDist && !geometry.boundingBox.containsPoint(ray.origin) ) {
 			return;
 		}
 
