@@ -221,7 +221,7 @@ Raycaster.prototype.intersectRemote = function(data, callback, scene) {
 
     if (!obj) {
 
-      if (item.name === 'terrainMesh' || item.name.includes('paving')) {
+      if (item.name === 'terrainMesh' || item.name.includes('tiles_cluster')) {
 
         obj = objCache[item.name] = item;
 
@@ -240,7 +240,7 @@ Raycaster.prototype.intersectRemote = function(data, callback, scene) {
 
     }
 
-    if (item.name !== 'terrainMesh' && !item.name.includes('paving')) {
+    if (item.name !== 'terrainMesh' && !item.name.includes('tiles_cluster')) {
 
       obj.allTransformsFromArrays(item);
 

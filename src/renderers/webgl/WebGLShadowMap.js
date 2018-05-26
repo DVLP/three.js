@@ -381,7 +381,7 @@ function WebGLShadowMap( _renderer, _objects, maxTextureSize ) {
 
 		if ( visible && ( object.isMesh || object.isLine || object.isPoints ) ) {
 
-			if ( object.castShadow && ( (object.parent && object.parent.inFrustum) || ( object.frustumCulled === false || (camera.inFov(object) && _frustum.intersectsObject( object ))) )) {
+			if ( object.castShadow && ( ( object.frustumCulled === false || object.inFrustum ) ) ) {
 
 				object.modelViewMatrix.multiplyMatrices( shadowCamera.matrixWorldInverse, object.matrixWorld );
 

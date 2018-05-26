@@ -238,7 +238,8 @@ Mesh.prototype = Object.assign( Object.create( Object3D.prototype ), {
 
 			if ( geometry.boundingSphere === null ) geometry.computeBoundingSphere(this.scale);
 
-
+			// TODO: this will be problematic when an object is rotated it's not that simple to just add building sphere offset
+			// need to create getWorldBuildingSphere or something like that to get real center
 			if ( raycaster.ray.distanceToPoint( this.getWorldPosition(tempA).add( geometry.boundingSphere.center ) ) > raycaster.far + geometry.boundingSphere.radius ) {
 				return;
 			}
