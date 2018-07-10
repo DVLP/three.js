@@ -443,7 +443,7 @@ Mesh.prototype.prepareForSend = function() {
 
 		root = {
 			position: rootEl.position.toArray(),
-			rotation: rootEl.rotation.toArray(),
+			quaternion: rootEl.quaternion.toArray(),
 			scale: rootEl.scale.toArray(),
 			name: rootEl.name
 		};
@@ -453,7 +453,7 @@ Mesh.prototype.prepareForSend = function() {
 		uuid: this.uuid,
 		modelClass: this.modelClass,
 		position: this.position.toArray(),
-		rotation: this.rotation.toArray(),
+		quaternion: this.quaternion.toArray(),
 		scale: this.scale.toArray(),
 		name: this.name
 	};

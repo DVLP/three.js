@@ -130,7 +130,7 @@ Object3D.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 	allTransformsFromArrays: function(source) {
 
 	  this.position.fromArray(source.position);
-	  this.rotation.fromArray(source.rotation);
+	  this.quaternion.fromArray( source.quaternion );
 	  this.scale.fromArray(source.scale);
 	  this.updateMatrix();
 	  this.updateMatrixWorldNoChildren();

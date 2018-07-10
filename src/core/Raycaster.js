@@ -195,9 +195,7 @@ Raycaster.prototype.intersectBBoxes = function(objects, recursive) {
 
 };
 
-var objCache = {};
-
-Raycaster.prototype.intersectRemote = function(data, callback, scene) {
+Raycaster.prototype.intersectRemote = function ( data, callback, scene, objCache ) {
 
   var results = [];
 
@@ -245,6 +243,45 @@ Raycaster.prototype.intersectRemote = function(data, callback, scene) {
       obj.allTransformsFromArrays(item);
 
     }
+
+		if ( item.type === 'actor' ) {
+
+			const bones = item.bones;
+
+			if ( bones ) {
+
+				const skeleton = obj.skeleton;
+				if ( ! skeleton ) {
+
+					console.warn( 'Item was provided bones, but it does not have a skeleton' );
+					continue;
+
+				}
+
+				// obj.updateBones(obj, bones);
+				const hips = obj.bones[ 'Bone.Hips' ];
+				Object.keys( bones ).forEach( key => {
+
+					if ( bones[ key ].position ) obj.bones[ key ].position.fromArray( bones[ key ].position );
+					obj.bones[ key ].quaternion.fromArray( bones[ key ].quaternion );
+					// obj.bones[ key ].updateMatrix();
+					// Or once for the whole mesh with children?
+					// obj.bones[ key ].updateMatrixWorldNoChildren(true);
+
+				} );
+				obj.updateMatrixWorld();
+				// // obj.bones['Bone.Arm.L'].position.copy(bones['Bone.Arm.L'].position);
+				// // obj.bones['Bone.Arm.L'].updateMatrix();
+				// // obj.bones['Bone.Arm.L'].updateMatrixWorldNoChildren(true);
+
+				// obj.bones[ 'Bone.Hips' ].position.set(0, 0, 0);
+				// obj.bones[ 'Bone.Hips' ].updateMatrix();
+				// obj.bones[ 'Bone.Hips' ].updateMatrixWorldNoChildren( true );
+				// obj.bones[ 'Bone.Hips' ].updateMatrixWorld( true );
+
+			}
+
+		}
 
     if (data.bboxOnly) {
 
