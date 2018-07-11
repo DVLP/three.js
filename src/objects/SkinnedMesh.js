@@ -201,6 +201,21 @@ SkinnedMesh.prototype = Object.assign( Object.create( Mesh.prototype ), {
 
 		return new this.constructor( this.geometry, this.material ).copy( this );
 
+	},
+
+	raycast: function raycast( raycaster, intersects ) {
+
+		if ( this.geometry.realPositionAttribute === null ) {
+
+			this.geometry.expensiveUpdateVertices( this );
+
+		}
+
+		var tmpPosition = this.geometry.attributes.position.array;
+		this.geometry.attributes.position.array = this.geometry.realPositionAttribute.array;
+		Mesh.prototype.raycast.call( this, raycaster, intersects );
+		this.geometry.attributes.position.array = tmpPosition;
+
 	}
 
 } );

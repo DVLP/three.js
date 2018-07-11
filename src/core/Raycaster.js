@@ -269,10 +269,11 @@ Raycaster.prototype.intersectRemote = function ( data, callback, scene, objCache
 					// obj.bones[ key ].updateMatrixWorldNoChildren(true);
 
 				} );
-				obj.updateMatrixWorld();
-				// // obj.bones['Bone.Arm.L'].position.copy(bones['Bone.Arm.L'].position);
-				// // obj.bones['Bone.Arm.L'].updateMatrix();
-				// // obj.bones['Bone.Arm.L'].updateMatrixWorldNoChildren(true);
+
+				obj.updateMatrixWorld( true );
+				obj.geometry.expensiveCalculateVertices( obj );
+				obj.geometry.computeBoundingBox( true );
+				obj.geometry.computeBoundingSphere( true );
 
 				// obj.bones[ 'Bone.Hips' ].position.set(0, 0, 0);
 				// obj.bones[ 'Bone.Hips' ].updateMatrix();
