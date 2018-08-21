@@ -555,7 +555,7 @@ function ExtrudeBufferGeometry( shapes, options ) {
 
 					}
 
-					layer = steps + bevelSegments * 2;
+					layer = steps + bevelSegments * ( bevelSide === DoubleSide ? 2 : 1 );
 					offset = vlen * layer;
 
 				}
@@ -641,10 +641,8 @@ function ExtrudeBufferGeometry( shapes, options ) {
 				k = i - 1;
 				if ( k < 0 ) k = contour.length - 1;
 
-				//console.log('b', i,j, i-1, k,vertices.length);
-
 				var s = 0,
-					sl = steps + bevelSegments * 2;
+					sl = steps + bevelSegments * ( bevelSide === DoubleSide ? 2 : 1 );
 
 				for ( s = 0; s < sl; s ++ ) {
 

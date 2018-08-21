@@ -77,8 +77,6 @@ Camera.prototype = Object.assign( Object.create( Object3D.prototype ), {
 
 } );
 
-self.dupor = 0;
-
 Camera.prototype.circleInFov = function(centrex, centrey, radius) {
     // angle1 = triangle[0].angle1,
     // angle2 = triangle[0].angle2,
@@ -91,7 +89,6 @@ Camera.prototype.circleInFov = function(centrex, centrey, radius) {
 
   var edge1 = this.triangle[1];
   var edge2 = this.triangle[2];
-  self.dupor++;
 
   if(!this.checkIfCircleOnInnerSideOfLine(edge1.vxdelta, edge1.v1xvydelta, edge1.vydelta, edge1.v1yvxdelta, edge1.ppnAngleCos, edge1.ppnAngleSin, centrex, centrey, radius)) {
     return false;
