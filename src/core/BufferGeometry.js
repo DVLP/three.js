@@ -1,4 +1,5 @@
 import { Vector3 } from '../math/Vector3.js';
+import { Vector4 } from '../math/Vector4.js';
 import { Box3 } from '../math/Box3.js';
 import { EventDispatcher } from './EventDispatcher.js';
 import { BufferAttribute, Float32BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute } from './BufferAttribute.js';
@@ -47,6 +48,8 @@ function BufferGeometry() {
 	this.boundingSphere = null;
 
 	this.drawRange = { start: 0, count: Infinity };
+
+	this.realPositionAttribute = null;
 
 }
 
@@ -597,7 +600,7 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 	},
 
-	computeBoundingBox: function () {
+	computeBoundingBox: function ( explicitExpensiveMode ) {
 
 		if ( this.boundingBox === null ) {
 
@@ -609,7 +612,16 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 		if ( position !== undefined ) {
 
-			this.boundingBox.setFromBufferAttribute( position );
+			if ( ! explicitExpensiveMode ) {
+
+				this.boundingBox.setFromBufferAttribute( position );
+
+			} else {
+
+				this.boundingBox.setFromBufferAttribute( this.realPositionAttribute );
+
+			}
+
 
 		} else {
 
@@ -625,12 +637,19 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 	},
 
-	computeBoundingSphere: function ( scale ) {
+	computeBoundingSphere: function () {
 
 		var box = new Box3();
 		var vector = new Vector3();
 
-		return function computeBoundingSphere() {
+		return function computeBoundingSphere( scale, explicitExpensiveMode ) {
+
+			if ( typeof scale === 'boolean' ) {
+
+				explicitExpensiveMode = scale;
+				scale = undefined;
+
+			}
 
 			if ( this.boundingSphere === null ) {
 
@@ -644,7 +663,24 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 				var center = this.boundingSphere.center;
 
-				box.setFromBufferAttribute( position );
+				if ( ! explicitExpensiveMode ) {
+
+					box.setFromBufferAttribute( position );
+
+				} else {
+
+					// Do NOT recalculate bounding box
+
+					if ( ! this.boundingBox ) {
+
+						this.computeBoundingBox( true );
+
+					}
+
+					box.copy( this.boundingBox );
+
+				}
+
 				box.getCenter( center );
 
 				// hoping to find a boundingSphere with a radius smaller than the
@@ -652,11 +688,13 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 				var maxRadiusSq = 0;
 
-				for ( var i = 0, il = position.count; i < il; i ++ ) {
+				var attribute = ! explicitExpensiveMode ? position : this.realPositionAttribute;
 
-					vector.x = position.getX( i );
-					vector.y = position.getY( i );
-					vector.z = position.getZ( i );
+				for ( var i = 0, il = attribute.count; i < il; i ++ ) {
+
+					vector.x = attribute.getX( i );
+					vector.y = attribute.getY( i );
+					vector.z = attribute.getZ( i );
 					maxRadiusSq = Math.max( maxRadiusSq, center.distanceToSquared( vector ) );
 
 				}
@@ -1415,7 +1453,65 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 		this.dispatchEvent( { type: 'dispose' } );
 
-	}
+	},
+
+	expensiveCalculateVertices: ( function () {
+
+		var i, l;
+		var properties = [ 'x', 'y', 'z', 'w' ];
+		var temp2 = new Vector3(), skinIndex = new Vector4(), skinWeights = new Vector4();
+		var temp = new Vector3(), tempMatrix = new Matrix4(), properties = [ 'x', 'y', 'z', 'w' ];
+		var result = new Vector3();
+
+		return function expensiveCalculateVertices( meshRef ) {
+
+			const position = this.attributes.position;
+
+			if ( this.realPositionAttribute === null ) {
+
+				this.realPositionAttribute = position.clone();
+
+			}
+
+			for ( i = 0, l = this.index.count; i < l; i ++ ) {
+
+				var idx = this.index.getX( i );
+				var index4 = idx << 2;
+				var typedOffset = idx * position.itemSize;
+
+				skinIndex.fromArray( this.attributes.skinIndex.array, index4 );
+				skinWeights.fromArray( this.attributes.skinWeight.array, index4 );
+				temp.fromArray( position.array, typedOffset );
+				temp.applyMatrix4( meshRef.bindMatrix );
+				result.set( 0, 0, 0 );
+
+				for ( var j = 0; j < 4; j ++ ) {
+
+					var prop = properties[ j ];
+
+					var skinWeight = skinWeights[ prop ];
+					var boneIndex = skinIndex[ prop ];
+
+					if ( skinWeight != 0 ) {
+
+						tempMatrix.multiplyMatrices( meshRef.skeleton.bones[ boneIndex ].matrixWorld, meshRef.skeleton.boneInverses[ boneIndex ] );
+						result.add( temp2.copy( temp ).applyMatrix4( tempMatrix ).multiplyScalar( skinWeight ) );
+
+					}
+
+				}
+
+				result.applyMatrix4( meshRef.bindMatrixInverse );
+
+				this.realPositionAttribute.setX( idx, result.x );
+				this.realPositionAttribute.setY( idx, result.y );
+				this.realPositionAttribute.setZ( idx, result.z );
+
+			}
+
+		};
+
+	} )(),
 
 } );
 
