@@ -182,12 +182,12 @@ Mesh.prototype = Object.assign( Object.create( Object3D.prototype ), {
 			intersectionPointWorld.copy( point );
 			intersectionPointWorld.applyMatrix4( object.matrixWorld );
 
-			var distance = raycaster.ray.origin.distanceTo( intersectionPointWorld );
+			var distanceSq = raycaster.ray.origin.distanceToSquared( intersectionPointWorld );
 
-			if ( distance < raycaster.near || distance > raycaster.far ) return null;
+			if ( distanceSq < ( raycaster.near * raycaster.near ) || distanceSq > ( raycaster.far * raycaster.far ) ) return null;
 
 			return {
-				distance: distance,
+				distanceSq: distanceSq,
 				point: intersectionPointWorld.clone(),
 				object: object
 			};
@@ -240,7 +240,8 @@ Mesh.prototype = Object.assign( Object.create( Object3D.prototype ), {
 
 			// TODO: this will be problematic when an object is rotated it's not that simple to just add building sphere offset
 			// need to create getWorldBuildingSphere or something like that to get real center
-			if ( raycaster.ray.distanceToPoint( this.getWorldPosition(tempA).add( geometry.boundingSphere.center ) ) > raycaster.far + geometry.boundingSphere.radius ) {
+			var size = raycaster.far + geometry.boundingSphere.radius;
+			if ( raycaster.ray.distanceSqToPoint( this.getWorldPosition( tempA ).add( geometry.boundingSphere.center ) ) > ( size * size ) ) {
 				return;
 			}
 
@@ -260,11 +261,11 @@ Mesh.prototype = Object.assign( Object.create( Object3D.prototype ), {
 				return;
 			}
 
-			var boxDist = ray.origin.distanceTo( boxIntersects );
+			var boxDistSquared = ray.origin.distanceToSquared( boxIntersects );
 
 			// this one is tricky because if you're next to irregular shape the distance from bbox
 			// the distance to the bounding box can be increasing the closer you get to the actual shape
-			if ( boxDist > raycaster.far && !geometry.boundingBox.containsPoint(ray.origin) ) {
+			if ( boxDistSquared > ( raycaster.far * raycaster.far ) && !geometry.boundingBox.containsPoint(ray.origin) ) {
 				return;
 			}
 
@@ -495,15 +496,15 @@ Mesh.prototype.raycastBBoxOnly = (function() {
 	return function raycastBBoxOnly(raycaster, predefinedTarget) {
 		var target = predefinedTarget || new Vector3();
 		var geometry = this.geometry;
-		var maxDist = raycaster.far;
+		var maxDistSq = raycaster.far * raycaster.far;
 		// Checking boundingSphere distance to ray
 
 		if (geometry.boundingSphere === null) geometry.computeBoundingSphere(this.scale);
 
 		// optimization to getWorldPosition is only faster if getWorldPosition is also optimized!
-		var sphereDist = raycaster.ray.distanceToPoint( this.getWorldPosition( tempPoint ) ) - geometry.boundingSphere.radius;
+		var sphereDistSq = raycaster.ray.distanceSqToPoint( this.getWorldPosition( tempPoint ) ) - geometry.boundingSphere.radius * geometry.boundingSphere.radius;
 
-		if ( sphereDist > 0 && sphereDist > maxDist ) {
+		if ( sphereDistSq > 0 && sphereDistSq > maxDistSq ) {
 			return;
 		}
 
@@ -518,13 +519,13 @@ Mesh.prototype.raycastBBoxOnly = (function() {
 		if (boxIntersect === null) {
 			return;
 		}
-		var boxDist = ray.origin.distanceTo( boxIntersect );
+		var boxDistSq = ray.origin.distanceToSquared( boxIntersect );
 
-		if ( boxDist > maxDist && !geometry.boundingBox.containsPoint(ray.origin) ) {
+		if ( boxDistSq > maxDistSq && !geometry.boundingBox.containsPoint(ray.origin) ) {
 			return;
 		}
 
-		boxIntersect.distance = boxDist;
+		boxIntersect.distanceSq = boxDistSq;
 
 		return boxIntersect;
 	};

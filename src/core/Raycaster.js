@@ -37,13 +37,7 @@ function Raycaster( origin, direction, near, far ) {
 
 function ascSort( a, b ) {
 
-	return a.distance - b.distance;
-
-}
-
-function descSort(a, b) {
-
-  return a.distance - b.distance;
+	return a.distanceSq - b.distanceSq;
 
 }
 
@@ -167,7 +161,7 @@ Raycaster.prototype.intersectInvisibleObjects = function(objects, recursive) {
 
   }
 
-  intersects.sort(descSort);
+  intersects.sort(ascSort);
 
   return intersects;
 
@@ -189,7 +183,7 @@ Raycaster.prototype.intersectBBoxes = function(objects, recursive) {
 
   }
 
-  intersects.sort(descSort);
+  intersects.sort(ascSort);
 
   return intersects;
 
@@ -267,7 +261,7 @@ Raycaster.prototype.intersectRemote = function(data, callback, scene) {
 
   results.sort(function(a, b) {
 
-    return a.distance - b.distance;
+    return a.distanceSq - b.distanceSq;
 
   });
 
@@ -298,7 +292,7 @@ Raycaster.prototype.prepareAnswer = function(intersects, results, uuid) {
         bboxOnly: false,
         uuid: uuid,
         name: intersect.object.name,
-        distance: intersect.distance,
+        distanceSq: intersect.distanceSq,
         point: intersect.point,
         face: intersect.face,
         faceIndex: intersect.faceIndex,
