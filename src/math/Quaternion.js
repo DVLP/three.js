@@ -579,7 +579,8 @@ Object.assign( Quaternion.prototype, {
 
 	},
 
-	fastSlerp: function ( end, t, result ) {
+	// fast slerp without trignometry functions https://cesium.com/blog/2014/01/09/a-fast-algorithm-for-computing-slerp/
+	fastSlerp: function ( end, t ) {
 
 		var x = this.dot( end );
 
@@ -617,12 +618,12 @@ Object.assign( Quaternion.prototype, {
 		// Quaternion.multiplyByScalar( start, cD, fastSlerpScratchQuaternion );
 		// Quaternion.multiplyByScalar( end, cT, result );
 		// Quaternion.add( temp, result, result )
-		result._x = end._x * cT + this._x * cD;
-		result._y = end._y * cT + this._y * cD;
-		result._z = end._z * cT + this._z * cD;
-		result._w = end._w * cT + this._w * cD;
+		this._x = end._x * cT + this._x * cD;
+		this._y = end._y * cT + this._y * cD;
+		this._z = end._z * cT + this._z * cD;
+		this._w = end._w * cT + this._w * cD;
 
-		return result;
+		return this;
 
 	},
 
