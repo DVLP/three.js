@@ -1444,4 +1444,4 @@ Geometry.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 // legacy compatibility
 Geometry.prototype.computeTangents = function() {};
 
-export { GeometryIdCount, Geometry };
+export { Geometry };
