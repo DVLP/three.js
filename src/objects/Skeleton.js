@@ -15,6 +15,9 @@ function Skeleton( bones, boneInverses ) {
 
 	this.bones = bones.slice( 0 );
 	this.boneMatrices = new Float32Array( this.bones.length * 16 );
+	for (var i = 15; i < this.boneMatrices.length; i += 16) {
+		this.boneMatrices[i] = 1;
+	}
 
 	// use the supplied bone inverses or calculate the inverses
 

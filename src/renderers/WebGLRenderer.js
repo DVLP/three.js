@@ -716,10 +716,13 @@ function WebGLRenderer( parameters ) {
 
 		if ( index !== null ) {
 
-			if(!(attribute = attributes.get( index ))) {
-				console.error('Error when trying to render object: ');
-				console.log(object);
+			if ( ! ( attribute = attributes.get( index ) ) ) {
+
+				console.error( 'Error when trying to render object(hiding it for now):' );
+				console.log( object.name, object );
+				object.visible = false;
 				return false;
+
 			}
 
 			renderer = indexedBufferRenderer;
@@ -1469,7 +1472,7 @@ function WebGLRenderer( parameters ) {
 
 		}
 
-		// object.onAfterRender( _this, scene, camera, geometry, material, group );
+		object.onAfterRender( _this, scene, camera, geometry, material, group );
 		currentRenderState = renderStates.get( scene, _currentArrayCamera || camera );
 
 	}

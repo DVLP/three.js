@@ -117,6 +117,8 @@ Object.assign( Ray.prototype, {
 
 			}
 
+			// maybe just point.distanceToSquared(this.origin) ?
+
 			v1.copy( this.direction ).multiplyScalar( directionDistance ).add( this.origin );
 
 			return v1.distanceToSquared( point );

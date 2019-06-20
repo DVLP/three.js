@@ -229,8 +229,8 @@ function setValue4fm( gl, v ) {
 
 	} else {
 
-		mat4array.set( v.elements );
-		gl.uniformMatrix4fv( this.addr, false, mat4array );
+		// mat4array.set( v.elements );
+		gl.uniformMatrix4fv( this.addr, false, v.elements );
 
 	}
 
