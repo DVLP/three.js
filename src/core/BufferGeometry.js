@@ -1158,7 +1158,7 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 		  src.groups.forEach( group => {
 
-		  	dst.addGroup( group.start / 3, group.count / 3, group.materialIndex );
+		  	dst.addGroup( group.start / 9, group.count / 9, group.materialIndex );
 
 		  } );
 

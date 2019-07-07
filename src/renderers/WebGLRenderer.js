@@ -716,13 +716,10 @@ function WebGLRenderer( parameters ) {
 
 		if ( index !== null ) {
 
-			if ( ! ( attribute = attributes.get( index ) ) ) {
-
-				console.error( 'Error when trying to render object(hiding it for now):' );
-				console.log( object.name, object );
-				object.visible = false;
+			if(!(attribute = attributes.get( index ))) {
+				console.error('Error when trying to render object: ');
+				console.log(object);
 				return false;
-
 			}
 
 			renderer = indexedBufferRenderer;
