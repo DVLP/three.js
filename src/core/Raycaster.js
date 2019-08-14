@@ -330,7 +330,7 @@ Raycaster.prototype.prepareAnswer = function(intersects, results, uuid) {
         bboxOnly: false,
         uuid: uuid,
         name: intersect.object.name,
-        distanceSq: intersect.distanceSq,
+        distanceSq: intersect.distanceSq !== undefined ? intersect.distanceSq : this.ray.origin.distanceToSquared( intersect.point ), // workaround for accelerated raycast
         point: intersect.point,
         face: intersect.face,
         faceIndex: intersect.faceIndex,
