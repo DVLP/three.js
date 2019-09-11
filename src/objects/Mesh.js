@@ -411,8 +411,6 @@ Mesh.prototype = Object.assign( Object.create( Object3D.prototype ), {
 
 } );
 
-
-
 // copy position, rotation and scale from source object
 Mesh.prototype.copyAllTransforms = function(source) {
 
