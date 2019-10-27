@@ -32,7 +32,7 @@ export default {
 	output: [
 		{
 			format: 'umd',
-			name: 'THREE',
+			name: 'dvlp-three',
 			file: 'build/three.js',
 			indent: '\t'
 		},
