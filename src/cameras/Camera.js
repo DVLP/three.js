@@ -203,7 +203,7 @@ Camera.prototype.inFov = function(object) {
     return true;
   }
 
-  var bSphere = object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale),
+  var bSphere = object.bsphere || object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale),
     centrex = object.position.x,
     centrey = object.position.z,
     radius = bSphere.radius;

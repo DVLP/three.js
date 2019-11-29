@@ -254,10 +254,14 @@
 	var ClampToEdgeWrapping = 1001;
 	var MirroredRepeatWrapping = 1002;
 	var NearestFilter = 1003;
+	var NearestMipmapNearestFilter = 1004;
 	var NearestMipMapNearestFilter = 1004;
+	var NearestMipmapLinearFilter = 1005;
 	var NearestMipMapLinearFilter = 1005;
 	var LinearFilter = 1006;
+	var LinearMipmapNearestFilter = 1007;
 	var LinearMipMapNearestFilter = 1007;
+	var LinearMipmapLinearFilter = 1008;
 	var LinearMipMapLinearFilter = 1008;
 	var UnsignedByteType = 1009;
 	var ByteType = 1010;
@@ -1337,16 +1341,15 @@
 
 		}(),
 
-		multiply: function ( m, n ) {
-
-			if ( n !== undefined ) {
-
-				console.warn( 'THREE.Matrix4: .multiply() now only accepts one argument. Use .multiplyMatrices( a, b ) instead.' );
-				return this.multiplyMatrices( m, n );
-
-			}
+		multiply: function ( m ) {
 
 			return this.multiplyMatrices( this, m );
+
+		},
+
+		multiplyIncludingBottomRow: function ( m ) {
+
+			return this.multiplyMatricesIncludingBottomRow( this, m );
 
 		},
 
@@ -1365,32 +1368,69 @@
 			var a11 = ae[ 0 ], a12 = ae[ 4 ], a13 = ae[ 8 ], a14 = ae[ 12 ];
 			var a21 = ae[ 1 ], a22 = ae[ 5 ], a23 = ae[ 9 ], a24 = ae[ 13 ];
 			var a31 = ae[ 2 ], a32 = ae[ 6 ], a33 = ae[ 10 ], a34 = ae[ 14 ];
-			var a41 = ae[ 3 ], a42 = ae[ 7 ], a43 = ae[ 11 ], a44 = ae[ 15 ];
+			// var a41 = ae[ 3 ], a42 = ae[ 7 ], a43 = ae[ 11 ], a44 = ae[ 15 ];
 
 			var b11 = be[ 0 ], b12 = be[ 4 ], b13 = be[ 8 ], b14 = be[ 12 ];
 			var b21 = be[ 1 ], b22 = be[ 5 ], b23 = be[ 9 ], b24 = be[ 13 ];
 			var b31 = be[ 2 ], b32 = be[ 6 ], b33 = be[ 10 ], b34 = be[ 14 ];
-			var b41 = be[ 3 ], b42 = be[ 7 ], b43 = be[ 11 ], b44 = be[ 15 ];
+			// var b41 = be[ 3 ], b42 = be[ 7 ], b43 = be[ 11 ], b44 = be[ 15 ];
 
-			te[ 0 ] = a11 * b11 + a12 * b21 + a13 * b31 + a14 * b41;
-			te[ 4 ] = a11 * b12 + a12 * b22 + a13 * b32 + a14 * b42;
+			te[ 0 ] = a11 * b11 + a12 * b21 + a13 * b31;
+			te[ 4 ] = a11 * b12 + a12 * b22 + a13 * b32;
+			te[ 8 ] = a11 * b13 + a12 * b23 + a13 * b33;
+			te[ 12 ] = a11 * b14 + a12 * b24 + a13 * b34 + a14;
+
+			te[ 1 ] = a21 * b11 + a22 * b21 + a23 * b31;
+			te[ 5 ] = a21 * b12 + a22 * b22 + a23 * b32;
+			te[ 9 ] = a21 * b13 + a22 * b23 + a23 * b33;
+			te[ 13 ] = a21 * b14 + a22 * b24 + a23 * b34 + a24;
+
+			te[ 2 ] = a31 * b11 + a32 * b21 + a33 * b31;
+			te[ 6 ] = a31 * b12 + a32 * b22 + a33 * b32;
+			te[ 10 ] = a31 * b13 + a32 * b23 + a33 * b33;
+			te[ 14 ] = a31 * b14 + a32 * b24 + a33 * b34 + a34;
+
+			// te[ 3 ] = 0 + 0 + 0 + 0; // no need to overwrite zero
+			// te[ 7 ] = 0 + 0 + 0 + 0; // no need to overwrite zero
+			// te[ 11 ] = 0 + 0 + 0 + 0; // no need to overwrite zero
+			// te[ 15 ] = 0 + 0 + 0 + 1; // no need to overwrite one
+		},
+
+		multiplyMatricesIncludingBottomRow: function ( a, b ) {
+
+			var ae = a.elements;
+			var be = b.elements;
+			var te = this.elements;
+
+			var a11 = ae[ 0 ], a12 = ae[ 4 ], a13 = ae[ 8 ], a14 = ae[ 12 ];
+			var a21 = ae[ 1 ], a22 = ae[ 5 ], a23 = ae[ 9 ], a24 = ae[ 13 ];
+			var a31 = ae[ 2 ], a32 = ae[ 6 ], a33 = ae[ 10 ], a34 = ae[ 14 ];
+			var                               a43 = ae[ 11 ], a44 = ae[ 15 ];
+
+			var b11 = be[ 0 ], b12 = be[ 4 ], b13 = be[ 8 ], b14 = be[ 12 ];
+			var b21 = be[ 1 ], b22 = be[ 5 ], b23 = be[ 9 ], b24 = be[ 13 ];
+			var b31 = be[ 2 ], b32 = be[ 6 ], b33 = be[ 10 ], b34 = be[ 14 ];
+			var                               b43 = be[ 11 ], b44 = be[ 15 ];
+
+			te[ 0 ] = a11 * b11 + a12 * b21 + a13 * b31;
+			te[ 4 ] = a11 * b12 + a12 * b22 + a13 * b32;
 			te[ 8 ] = a11 * b13 + a12 * b23 + a13 * b33 + a14 * b43;
 			te[ 12 ] = a11 * b14 + a12 * b24 + a13 * b34 + a14 * b44;
 
-			te[ 1 ] = a21 * b11 + a22 * b21 + a23 * b31 + a24 * b41;
-			te[ 5 ] = a21 * b12 + a22 * b22 + a23 * b32 + a24 * b42;
+			te[ 1 ] = a21 * b11 + a22 * b21 + a23 * b31;
+			te[ 5 ] = a21 * b12 + a22 * b22 + a23 * b32;
 			te[ 9 ] = a21 * b13 + a22 * b23 + a23 * b33 + a24 * b43;
 			te[ 13 ] = a21 * b14 + a22 * b24 + a23 * b34 + a24 * b44;
 
-			te[ 2 ] = a31 * b11 + a32 * b21 + a33 * b31 + a34 * b41;
-			te[ 6 ] = a31 * b12 + a32 * b22 + a33 * b32 + a34 * b42;
+			te[ 2 ] = a31 * b11 + a32 * b21 + a33 * b31;
+			te[ 6 ] = a31 * b12 + a32 * b22 + a33 * b32;
 			te[ 10 ] = a31 * b13 + a32 * b23 + a33 * b33 + a34 * b43;
 			te[ 14 ] = a31 * b14 + a32 * b24 + a33 * b34 + a34 * b44;
 
-			te[ 3 ] = a41 * b11 + a42 * b21 + a43 * b31 + a44 * b41;
-			te[ 7 ] = a41 * b12 + a42 * b22 + a43 * b32 + a44 * b42;
-			te[ 11 ] = a41 * b13 + a42 * b23 + a43 * b33 + a44 * b43;
-			te[ 15 ] = a41 * b14 + a42 * b24 + a43 * b34 + a44 * b44;
+			te[ 3 ] = a43 * b31;
+			te[ 7 ] = a43 * b32;
+			te[ 11 ] = a43 * b33 + a44 * b43;
+			te[ 15 ] = a43 * b34 + a44 * b44;
 
 			return this;
 
@@ -1403,7 +1443,7 @@
 			te[ 0 ] *= s; te[ 4 ] *= s; te[ 8 ] *= s; te[ 12 ] *= s;
 			te[ 1 ] *= s; te[ 5 ] *= s; te[ 9 ] *= s; te[ 13 ] *= s;
 			te[ 2 ] *= s; te[ 6 ] *= s; te[ 10 ] *= s; te[ 14 ] *= s;
-			te[ 3 ] *= s; te[ 7 ] *= s; te[ 11 ] *= s; te[ 15 ] *= s;
+			/*te[ 3 ] *= s; te[ 7 ] *= s;*/ te[ 11 ] *= s; te[ 15 ] *= s;
 
 			return this;
 
@@ -1434,6 +1474,8 @@
 		}(),
 
 		determinant: function () {
+
+			return 1;
 
 			var te = this.elements;
 
@@ -1553,12 +1595,12 @@
 			te[ 0 ] = t11 * detInv;
 			te[ 1 ] = ( n24 * n33 * n41 - n23 * n34 * n41 - n24 * n31 * n43 + n21 * n34 * n43 + n23 * n31 * n44 - n21 * n33 * n44 ) * detInv;
 			te[ 2 ] = ( n22 * n34 * n41 - n24 * n32 * n41 + n24 * n31 * n42 - n21 * n34 * n42 - n22 * n31 * n44 + n21 * n32 * n44 ) * detInv;
-			te[ 3 ] = ( n23 * n32 * n41 - n22 * n33 * n41 - n23 * n31 * n42 + n21 * n33 * n42 + n22 * n31 * n43 - n21 * n32 * n43 ) * detInv;
+			// te[ 3 ] = ( n23 * n32 * n41 - n22 * n33 * n41 - n23 * n31 * n42 + n21 * n33 * n42 + n22 * n31 * n43 - n21 * n32 * n43 ) * detInv;
 
 			te[ 4 ] = t12 * detInv;
 			te[ 5 ] = ( n13 * n34 * n41 - n14 * n33 * n41 + n14 * n31 * n43 - n11 * n34 * n43 - n13 * n31 * n44 + n11 * n33 * n44 ) * detInv;
 			te[ 6 ] = ( n14 * n32 * n41 - n12 * n34 * n41 - n14 * n31 * n42 + n11 * n34 * n42 + n12 * n31 * n44 - n11 * n32 * n44 ) * detInv;
-			te[ 7 ] = ( n12 * n33 * n41 - n13 * n32 * n41 + n13 * n31 * n42 - n11 * n33 * n42 - n12 * n31 * n43 + n11 * n32 * n43 ) * detInv;
+			// te[ 7 ] = ( n12 * n33 * n41 - n13 * n32 * n41 + n13 * n31 * n42 - n11 * n33 * n42 - n12 * n31 * n43 + n11 * n32 * n43 ) * detInv;
 
 			te[ 8 ] = t13 * detInv;
 			te[ 9 ] = ( n14 * n23 * n41 - n13 * n24 * n41 - n14 * n21 * n43 + n11 * n24 * n43 + n13 * n21 * n44 - n11 * n23 * n44 ) * detInv;
@@ -1582,7 +1624,7 @@
 			te[ 0 ] *= x; te[ 4 ] *= y; te[ 8 ] *= z;
 			te[ 1 ] *= x; te[ 5 ] *= y; te[ 9 ] *= z;
 			te[ 2 ] *= x; te[ 6 ] *= y; te[ 10 ] *= z;
-			te[ 3 ] *= x; te[ 7 ] *= y; te[ 11 ] *= z;
+			// te[ 3 ] *= x; te[ 7 ] *= y; te[ 11 ] *= z;
 
 			return this;
 
@@ -1743,8 +1785,8 @@
 				var sz = vector.set( te[ 8 ], te[ 9 ], te[ 10 ] ).length();
 
 				// if determine is negative, we need to invert one scale
-				var det = this.determinant();
-				if ( det < 0 ) sx = - sx;
+				// var det = this.determinant();
+				// if ( det < 0 ) sx = - sx;
 
 				position.x = te[ 12 ];
 				position.y = te[ 13 ];
@@ -1866,22 +1908,24 @@
 			array[ offset ] = te[ 0 ];
 			array[ offset + 1 ] = te[ 1 ];
 			array[ offset + 2 ] = te[ 2 ];
-			array[ offset + 3 ] = te[ 3 ];
+			// array[ offset + 3 ] = te[ 3 ];
 
 			array[ offset + 4 ] = te[ 4 ];
 			array[ offset + 5 ] = te[ 5 ];
 			array[ offset + 6 ] = te[ 6 ];
-			array[ offset + 7 ] = te[ 7 ];
+			// array[ offset + 7 ] = te[ 7 ];
 
 			array[ offset + 8 ] = te[ 8 ];
 			array[ offset + 9 ] = te[ 9 ];
 			array[ offset + 10 ] = te[ 10 ];
-			array[ offset + 11 ] = te[ 11 ];
+			// array[ offset + 11 ] = te[ 11 ];
 
 			array[ offset + 12 ] = te[ 12 ];
 			array[ offset + 13 ] = te[ 13 ];
 			array[ offset + 14 ] = te[ 14 ];
-			array[ offset + 15 ] = te[ 15 ];
+
+			// set only once
+			// array[ offset + 15 ] = te[ 15 ];
 
 			return array;
 
@@ -1895,6 +1939,24 @@
 	 * @author WestLangley / http://github.com/WestLangley
 	 * @author bhouston / http://clara.io
 	 */
+
+	var opmu = 1.90110745351730037;
+	var u = new Float32Array( 8 );
+	var v = new Float32Array( 8 );
+	var bT = new Float32Array( 8 );
+	var bD = new Float32Array( 8 );
+
+	for ( var i = 0; i < 7; ++ i ) {
+
+		var s = i + 1.0;
+		var t = 2.0 * s + 1.0;
+		u[ i ] = 1.0 / ( s * t );
+		v[ i ] = s / t;
+
+	}
+
+	u[ 7 ] = opmu / ( 8.0 * 17.0 );
+	v[ 7 ] = opmu * 8.0 / 17.0;
 
 	function Quaternion( x, y, z, w ) {
 
@@ -2450,6 +2512,54 @@
 
 		},
 
+		// fast slerp without trignometry functions https://cesium.com/blog/2014/01/09/a-fast-algorithm-for-computing-slerp/
+		fastSlerp: function ( end, t ) {
+
+			var x = this.dot( end );
+
+			var sign;
+			if ( x >= 0 ) {
+
+				sign = 1.0;
+
+			} else {
+
+				sign = - 1.0;
+				x = - x;
+
+			}
+
+			var xm1 = x - 1.0;
+			var d = 1.0 - t;
+			var sqrT = t * t;
+			var sqrD = d * d;
+
+			for ( var i = 7; i >= 0; -- i ) {
+
+				bT[ i ] = ( u[ i ] * sqrT - v[ i ] ) * xm1;
+				bD[ i ] = ( u[ i ] * sqrD - v[ i ] ) * xm1;
+
+			}
+
+			var cT = sign * t * (
+				1.0 + bT[ 0 ] * ( 1.0 + bT[ 1 ] * ( 1.0 + bT[ 2 ] * ( 1.0 + bT[ 3 ] * (
+					1.0 + bT[ 4 ] * ( 1.0 + bT[ 5 ] * ( 1.0 + bT[ 6 ] * ( 1.0 + bT[ 7 ] ) ) ) ) ) ) ) );
+			var cD = d * (
+				1.0 + bD[ 0 ] * ( 1.0 + bD[ 1 ] * ( 1.0 + bD[ 2 ] * ( 1.0 + bD[ 3 ] * (
+					1.0 + bD[ 4 ] * ( 1.0 + bD[ 5 ] * ( 1.0 + bD[ 6 ] * ( 1.0 + bD[ 7 ] ) ) ) ) ) ) ) );
+
+			// Quaternion.multiplyByScalar( start, cD, fastSlerpScratchQuaternion );
+			// Quaternion.multiplyByScalar( end, cT, result );
+			// Quaternion.add( temp, result, result )
+			this._x = end._x * cT + this._x * cD;
+			this._y = end._y * cT + this._y * cD;
+			this._z = end._z * cT + this._z * cD;
+			this._w = end._w * cT + this._w * cD;
+
+			return this;
+
+		},
+
 		equals: function ( quaternion ) {
 
 			return ( quaternion._x === this._x ) && ( quaternion._y === this._y ) && ( quaternion._z === this._z ) && ( quaternion._w === this._w );
@@ -2813,7 +2923,7 @@
 
 			return function project( camera ) {
 
-				matrix.multiplyMatrices( camera.projectionMatrix, matrix.getInverse( camera.matrixWorld ) );
+				matrix.multiplyMatricesIncludingBottomRow( camera.projectionMatrix, matrix.getInverse( camera.matrixWorld ) );
 				return this.applyMatrix4( matrix );
 
 			};
@@ -2826,7 +2936,7 @@
 
 			return function unproject( camera ) {
 
-				matrix.multiplyMatrices( camera.matrixWorld, matrix.getInverse( camera.projectionMatrix ) );
+				matrix.multiplyMatricesIncludingBottomRow( camera.matrixWorld, matrix.getInverse( camera.projectionMatrix ) );
 				return this.applyMatrix4( matrix );
 
 			};
@@ -5771,23 +5881,48 @@
 
 			var planes = this.planes;
 			var me = m.elements;
-			var me0 = me[ 0 ], me1 = me[ 1 ], me2 = me[ 2 ], me3 = me[ 3 ];
-			var me4 = me[ 4 ], me5 = me[ 5 ], me6 = me[ 6 ], me7 = me[ 7 ];
-			var me8 = me[ 8 ], me9 = me[ 9 ], me10 = me[ 10 ], me11 = me[ 11 ];
-			var me12 = me[ 12 ], me13 = me[ 13 ], me14 = me[ 14 ], me15 = me[ 15 ];
+			var me1 = me[ 1 ], me3 = me[ 3 ];
+			var me5 = me[ 5 ], me7 = me[ 7 ];
+			var me9 = me[ 9 ], me11 = me[ 11 ];
+			var me13 = me[ 13 ], me15 = me[ 15 ];
 
-			planes[ 0 ].setComponents( me3 - me0, me7 - me4, me11 - me8, me15 - me12 ).normalize();
-			planes[ 1 ].setComponents( me3 + me0, me7 + me4, me11 + me8, me15 + me12 ).normalize();
+			// planes[ 0 ].setComponents( me3 - me0, me7 - me4, me11 - me8, me15 - me12 ).normalize();
+			// planes[ 1 ].setComponents( me3 + me0, me7 + me4, me11 + me8, me15 + me12 ).normalize();
 			planes[ 2 ].setComponents( me3 + me1, me7 + me5, me11 + me9, me15 + me13 ).normalize();
 			planes[ 3 ].setComponents( me3 - me1, me7 - me5, me11 - me9, me15 - me13 ).normalize();
-			planes[ 4 ].setComponents( me3 - me2, me7 - me6, me11 - me10, me15 - me14 ).normalize();
-			planes[ 5 ].setComponents( me3 + me2, me7 + me6, me11 + me10, me15 + me14 ).normalize();
+			// planes[ 4 ].setComponents( me3 - me2, me7 - me6, me11 - me10, me15 - me14 ).normalize();
+			// planes[ 5 ].setComponents( me3 + me2, me7 + me6, me11 + me10, me15 + me14 ).normalize();
 
 			return this;
 
 		},
 
-		intersectsObject: function () {
+		intersectsObject: function (object) {
+			// for now just using 2d frustum - downside is top and bottom planes
+			// return true;
+
+			var sphere = object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale);
+			var planes = this.planes;
+			var center = object.position;
+			var negRadius = - sphere.radius * 2; // added locally
+
+			// first camera.inFov gets executed
+			// (2) bottom (1) right
+			// (3) top (2) left
+			// optimization: i < 4 instead of i < 4 toskip NEAR(5) and FAR(6) frustum planes - that's ~20k calculations per second less
+			// rejection is based on distance instead
+			//for ( var i = 4; i > 2; --i ) {
+			// 2 - bottom
+			if ( planes[ 2 ].distanceToPoint( center ) < negRadius ) return false;
+			// 3 - top
+			if ( planes[ 3 ].distanceToPoint( center ) < negRadius ) return false;
+			//}
+
+			return true;
+
+		},
+
+		intersectsObjectOld: function () {
 
 			var sphere = new Sphere();
 
@@ -7826,6 +7961,10 @@
 		this.parent = null;
 		this.children = [];
 
+		this.inFrustum = false;
+		this.hackedIntoScene = false;
+		this.updated = false;
+
 		this.up = Object3D.DefaultUp.clone();
 
 		var position = new Vector3();
@@ -7917,7 +8056,53 @@
 			this.quaternion.premultiply( q );
 
 			return this;
+		},
 
+		// copy position, rotation and scale from source object
+		allTransformsFromArrays: function(source) {
+
+		  this.position.fromArray(source.position);
+		  this.quaternion.fromArray( source.quaternion );
+		  this.scale.fromArray(source.scale);
+		  this.updateMatrix();
+		  this.updateMatrixWorldNoChildren();
+
+		},
+
+		// find ancestor who's directly on the scene
+		// if the object is directly on the scene returns false
+		getRoot: function() {
+
+		  if (this.isRoot()) {
+		    return false;
+		  }
+
+		  var parent = this.parent;
+
+		  // get to the root element directly on scene
+		  while (parent !== null && !parent.isRoot()) {
+		    parent = parent.parent;
+		  }
+
+		  return parent;
+
+		},
+
+		isRoot: function() {
+
+		  if (!this.parent) {
+		    return true;
+		  }
+
+		},
+
+		getScene: function() {
+
+			if (this.isRoot()) {
+				return this.parent;
+			} else {
+				return this.getRoot().parent;
+			}
 		},
 
 		setRotationFromAxisAngle: function ( axis, angle ) {
@@ -8240,7 +8425,7 @@
 
 		},
 
-		getWorldPosition: function ( target ) {
+	/*	getWorldPosition: function ( optionalTarget ) {
 
 			if ( target === undefined ) {
 
@@ -8252,6 +8437,30 @@
 			this.updateMatrixWorld( true );
 
 			return target.setFromMatrixPosition( this.matrixWorld );
+
+		},*/
+
+		getWorldPosition: function ( optionalTarget ) {
+
+			if(this.parent === null) {
+				if(optionalTarget) {
+					return optionalTarget.copy(this.position);
+				}
+				return this.position.clone();
+			}
+
+			var result = optionalTarget || this.position.clone();
+
+			// var parent = this.parent;
+			// while (parent && !(parent instanceof THREE.Scene)) {
+			// 	result.add(parent.position);
+			// 	parent = parent.parent;
+			// }
+			// return result;
+
+			// back to normal getworldposition! but no updating children matrices!!!
+			this.updateMatrixWorldNoChildren( true );
+			return result.setFromMatrixPosition( this.matrixWorld );
 
 		},
 
@@ -8407,6 +8616,29 @@
 			for ( var i = 0, l = children.length; i < l; i ++ ) {
 
 				children[ i ].updateMatrixWorld( force );
+
+			}
+
+		},
+
+		updateMatrixWorldNoChildren: function ( force ) {
+
+			if (this.matrixAutoUpdate === true) this.updateMatrix();
+
+			if (this.matrixWorldNeedsUpdate === true || force === true) {
+
+				if (this.parent === null ) { //  || this.parent instanceof THREE.Scene || this.parent instanceof THREE.VirtualScene) {
+
+					//this.matrixWorld.copy( this.matrix );
+					this.matrixWorld = this.matrix;
+
+				} else {
+
+					this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
+
+				}
+
+				this.matrixWorldNeedsUpdate = false;
 
 			}
 
@@ -8612,7 +8844,7 @@
 			this.frustumCulled = source.frustumCulled;
 			this.renderOrder = source.renderOrder;
 
-			this.userData = JSON.parse( JSON.stringify( source.userData ) );
+			this.userData = JSON.parse( JSON.stringify( source.userData || {} ) );
 
 			if ( recursive === true ) {
 
@@ -8645,6 +8877,8 @@
 
 		this.matrixWorldInverse = new Matrix4();
 		this.projectionMatrix = new Matrix4();
+		this.triangle = [new Vector2(), new Vector2(), new Vector2()];
+		this.worldPos = new Vector3();
 
 	}
 
@@ -8701,6 +8935,244 @@
 		}
 
 	} );
+
+	Camera.prototype.circleInFov = function(centrex, centrey, radius) {
+	    // angle1 = triangle[0].angle1,
+	    // angle2 = triangle[0].angle2,
+	    // v1x = triangle[0].x,
+	    // v1y = triangle[0].y,
+	    // v2x = triangle[1].x,
+	    // v2y = triangle[1].y,
+	    // v3x = triangle[2].x,
+	    // v3y = triangle[2].y;
+
+	  var edge1 = this.triangle[1];
+	  var edge2 = this.triangle[2];
+
+	  if(!this.checkIfCircleOnInnerSideOfLine(edge1.vxdelta, edge1.v1xvydelta, edge1.vydelta, edge1.v1yvxdelta, edge1.ppnAngleCos, edge1.ppnAngleSin, centrex, centrey, radius)) {
+	    return false;
+	  }
+	  if(this.checkIfCircleOnInnerSideOfLine(edge2.vxdelta, edge2.v1xvydelta, edge2.vydelta, edge2.v1yvxdelta, edge2.ppnAngleCos, edge2.ppnAngleSin, centrex, centrey, radius)) {
+	    return false;
+	  }
+	  return true;
+	};
+
+	Camera.prototype.sphereInFov = function(centrex, centrey, radius) {
+
+	  var triangle = this.triangle,
+	    v1x = triangle[0].x,
+	    v1y = triangle[0].y,
+	    v2x = triangle[1].x,
+	    v2y = triangle[1].y,
+	    v3x = triangle[2].x,
+	    v3y = triangle[2].y,
+	    len = 0;
+
+	  //
+	  // TEST 1: Vertex within circle - very low probability, waste of time?
+	  //
+	  var c1x = centrex - v1x,
+	    c1y = centrey - v1y;
+
+	  var radiusSqr = radius * radius,
+	    c1sqr = c1x * c1x + c1y * c1y - radiusSqr;
+
+	  if (c1sqr <= 0) return true;
+
+	  var c2x = centrex - v2x,
+	    c2y = centrey - v2y,
+	    c2sqr = c2x * c2x + c2y * c2y - radiusSqr;
+
+	  if (c2sqr <= 0) return true;
+
+	  var c3x = centrex - v3x,
+	    c3y = centrey - v3y,
+	    c3sqr = c3x * c3x + c3y * c3y - radiusSqr;
+
+	  if (c3sqr <= 0) return true;
+
+	  //
+	  // TEST 2: Circle centre within triangle
+	  //
+
+	  //
+	  // Calculate edges
+	  //
+	  var e1x = v2x - v1x,
+	    e1y = v2y - v1y,
+
+	    e2x = v3x - v2x,
+	    e2y = v3y - v2y,
+
+	    e3x = v1x - v3x,
+	    e3y = v1y - v3y;
+
+	  // longer version
+	  //if ((((v2y - v1y) * (pX - v1x) - (v2x - v1x) * (py - v1y)) | ((v3y - v2y) * (pX - v2x) - (v3x - v2x) * (py - v2y)) | ((v1y - v3y) * (pX - v3x) - (v1x - v3x) * (py - v3y))) >== 0) return 'inside';
+
+
+	  // shorter version
+	  if (((e1y * c1x - e1x * c1y) | (e2y * c2x - e2x * c2y) | (e3y * c3x - e3x * c3y)) >= 0) return true;
+
+	  //    if(pointInTriangle(object.position.x, object.position.z, v1x, v1y, v2x, v2y, v3x, v3y)) return 'indeed';
+
+	  //
+	  // TEST 3: Circle intersects edge
+	  //
+	  var k = c1x * e1x + c1y * e1y;
+
+	  if (k > 0) {
+	    len = e1x * e1x + e1y * e1y; // squared len
+
+	    if (k < len) {
+	      if (c1sqr * len <= k * k) return true;
+	    }
+	  }
+
+	  // Second edge
+	  k = c2x * e2x + c2y * e2y;
+
+	  if (k > 0) {
+	    len = e2x * e2x + e2y * e2y;
+
+	    if (k < len) {
+	      if (c2sqr * len <= k * k) return true;
+	    }
+	  }
+
+	  // Third edge
+	  k = c3x * e3x + c3y * e3y;
+
+	  if (k > 0) {
+	    len = e3x * e3x + e3y * e3y;
+
+	    if (k < len) {
+	      if (c3sqr * len <= k * k) return true;
+	    }
+	  }
+
+	  // We're done, no intersection
+	  return false;
+
+	};
+
+	Camera.prototype.inFov = function(object) {
+	  if (!this.fastFrustumRejection) {
+	    return true;
+	  }
+
+	  var bSphere = object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale),
+	    centrex = object.position.x,
+	    centrey = object.position.z,
+	    radius = bSphere.radius;
+
+	  // TEMP: radius should not need to be doubled
+	  return this.circleInFov(centrex, centrey, radius * 2);
+
+	};
+
+	// instead of calculating if object's bounding sphere is between frustum planes, two 2d triangles can be calculated: vertical and horizontal
+	// if a sphere(circle) is in both these triangles then the object is in frustum
+	// triangle has to be updated after each frame
+	Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDistance) {
+	// 1 is default - looking straight + the bigger the steeper looking up or down the larger angle of view around
+	  var viewWidthMultiplier = 1 + Math.pow(Math.abs(polarAngle - Math.PI / 2), 3);
+	  var worldPos = this.worldPos.setFromMatrixPosition(this.matrixWorld);
+
+	    //var p1 = { x: worldPos.x, y: worldPos.z },
+	    //angleOfViewV = this.fov * Math.PI / 180,
+	    var angle = this.getEffectiveFOV() * Math.max(1, this.aspect) * 1.1;
+	    var angleOfView = Math.max(-Math.PI + 0.1, Math.min(Math.PI - 0.1, angle * Math.PI / 180 * viewWidthMultiplier)), // viewWidthFactor: when looking up or down the angle gets wider
+	    theta = -azimuthalAngle - Math.PI / 2,
+	    //phi = -this.orbitControls.getPolarAngle() - Math.PI / 2,
+	    angle1 = theta - angleOfView / 2,
+	    angle2 = theta + angleOfView / 2,
+	    // angle1V = phi - angleOfViewV / 2,
+	    // angle2V = phi + angleOfViewV / 2,
+	    distance = drawDistance / viewWidthMultiplier; // viewWidthFactor: but distance gets smaller
+
+	  // triangle vertical
+	  // p5 = {x: p1.x + Math.cos(angle1V) * distance, y: p1.y + Math.sin(angle1V) * distance},
+	  // p4 = {x: p1.x + Math.cos(angle2V) * distance, y: p1.y + Math.sin(angle2V) * distance};
+
+	  this.triangle[0].angle1 = angle1;
+	  this.triangle[0].angle2 = angle2;
+	  this.triangle[0].x = worldPos.x;
+	  this.triangle[0].y = worldPos.z;
+	  this.triangle[1].x = worldPos.x + Math.cos(angle2) * distance;
+	  this.triangle[1].y = worldPos.z + Math.sin(angle2) * distance;
+	  this.triangle[2].x = worldPos.x + Math.cos(angle1) * distance;
+	  this.triangle[2].y = worldPos.z + Math.sin(angle1) * distance;
+
+
+	  // chaced values for computations
+	  this.triangle[1].vxdelta = this.triangle[1].x - this.triangle[0].x;
+	  this.triangle[1].vydelta = this.triangle[1].y - this.triangle[0].y;
+	  this.triangle[1].v1xvydelta = this.triangle[0].x * this.triangle[1].vydelta;
+	  this.triangle[1].v1yvxdelta = this.triangle[0].y * this.triangle[1].vxdelta;
+	  this.triangle[1].ppnAngleCos = Math.cos(angle1 + 0.5);
+	  this.triangle[1].ppnAngleSin = Math.sin(angle1 + 0.5);
+
+	  this.triangle[2].vxdelta = this.triangle[2].x - this.triangle[0].x;
+	  this.triangle[2].vydelta = this.triangle[2].y - this.triangle[0].y;
+	  this.triangle[2].v1xvydelta = this.triangle[0].x * this.triangle[2].vydelta;
+	  this.triangle[2].v1yvxdelta = this.triangle[0].y * this.triangle[2].vxdelta;
+	  this.triangle[2].ppnAngleCos = Math.cos(angle2 - 0.5);
+	  this.triangle[2].ppnAngleSin = Math.sin(angle2 - 0.5);
+
+	  //this.triangleV = this.triangleV = [p1, p4, p5];
+
+	  // help in debugging where is triangle
+	  // if(!this.helperBox1) {
+	  //   this.helperBox1 = new Mesh(new BoxGeometry( 3, 3, 3 ), new MeshBasicMaterial( { color: 0xFF0000, wireframe: false } ) );
+	  //   this.helperBox2 = new Mesh(new BoxGeometry( 500, 500, 500 ), new MeshBasicMaterial( { color: 0xFF0000, wireframe: false } ) );
+	  //   this.helperBox3 = new Mesh(new BoxGeometry( 500, 500, 500 ), new MeshBasicMaterial( { color: 0xFF0000, wireframe: false } ) );
+
+	  //   this.helperBox1.frustumCulled = false;
+	  //   this.helperBox1.name = 'helperBox1';
+	  //   this.helperBox2.frustumCulled = false;
+	  //   this.helperBox2.name = 'helperBox2';
+	  //   this.helperBox3.frustumCulled = false;
+	  //   this.helperBox3.name = 'helperBox3';
+
+	  //   app.scene.get().add(this.helperBox1);
+	  //   app.scene.get().add(this.helperBox2);
+	  //   app.scene.get().add(this.helperBox3);
+	  // }
+
+	  // this.helperBox1.position.set(p1.x, -1, p1.y);
+	  // this.helperBox2.position.set(p4.x, p4.y, p1.y);
+	  // this.helperBox3.position.set(p5.x, p4.y, p1.y);
+	};
+
+	// check on which side of line the point is - full version
+	Camera.prototype.checkIfCircleOnInnerSideOfLineUNCUT = function (v1x, v1y, v2x, v2y, angle, ccentreX, ccentreY, cradius, inverse) {
+	  if (typeof inverse === 'undefined') inverse = 1;
+	  var perpendicularAngle = angle + (0.5 * inverse);
+	  // 1. find the furthest point from all triangle boundary lines
+	  // 1.a left triangle arm, +0.5 for perpendicular angle to the line
+	  var farPtX = ccentreX + cradius * Math.cos(perpendicularAngle); // TODO: CACHE Math.cos(perpendicularAngle) in updateTriangle as ppAngleCos
+	  var farPtY = ccentreY + cradius * Math.sin(perpendicularAngle); // TODO: CACHE Math.sin(perpendicularAngle) in updateTriangle as ppAngleSin
+
+	  // 2. check on which side of line the point is
+	  var d = (farPtX - v1x) * (v2y - v1y) - (farPtY - v1y) * (v2x - v1x); // TODO: CACHE in updateTriangle like - farPtX * vYd - v1xvYd - farPtY * vXD - v1yvXD
+
+	  return d > 0 ? true : false;
+	}
+	(5 - 3) * 4;
+	// just like above but some calculations are cached and only calculated once per frame rather than for each object again and agagin
+	Camera.prototype.checkIfCircleOnInnerSideOfLine = function (vxdelta, v1xvydelta, vydelta, v1yvxdelta, ppnAngleCos, ppnAngleSin, ccentreX, ccentreY, cradius) {
+	  // 1. find the furthest point from all triangle boundary lines
+	  // 1.a left triangle arm, +0.5 for perpendicular angle to the line
+	  var farPtX = ccentreX + cradius * ppnAngleCos;
+	  var farPtY = ccentreY + cradius * ppnAngleSin;
+
+	  // 2. check on which side of line the point is
+	  var d = (farPtX * vydelta - v1xvydelta) - (farPtY * vxdelta - v1yvxdelta);
+
+	  return d > 0 ? true : false;
+	};
 
 	/**
 	 * @author alteredq / http://alteredqualia.com/
@@ -8926,6 +9398,8 @@
 		this.faceVertexUvs = [[]];
 
 		this.morphTargets = [];
+		this.morphTargetsMap = null;
+
 		this.morphNormals = [];
 
 		this.skinWeights = [];
@@ -9573,6 +10047,8 @@
 			}
 
 			this.boundingSphere.setFromPoints( this.vertices );
+
+			return this.boundingSphere;
 
 		},
 
@@ -10327,6 +10803,9 @@
 
 	} );
 
+	// legacy compatibility
+	Geometry.prototype.computeTangents = function() {};
+
 	/**
 	 * @author mrdoob / http://mrdoob.com/
 	 */
@@ -10753,6 +11232,7 @@
 		this.groups = [];
 
 		this.morphTargets = {};
+		this.morphTargetsMap = null;
 
 		this.skinWeights = [];
 		this.skinIndices = [];
@@ -11016,6 +11496,14 @@
 
 	}
 
+	function makeMap( object ) {
+
+		var map = new Map();
+		for(var key in object) { object.hasOwnProperty(key) && map.set(key, object[key]); }
+		return map;
+
+	}
+
 	/**
 	 * @author alteredq / http://alteredqualia.com/
 	 * @author mrdoob / http://mrdoob.com/
@@ -11034,8 +11522,10 @@
 
 		this.index = null;
 		this.attributes = {};
+		this.attributesMap = null;
 
 		this.morphAttributes = {};
+		this.morphAttributesMap = null;
 
 		this.groups = [];
 
@@ -11043,6 +11533,8 @@
 		this.boundingSphere = null;
 
 		this.drawRange = { start: 0, count: Infinity };
+
+		this.realPositionAttribute = null;
 
 	}
 
@@ -11539,10 +12031,12 @@
 
 			// morphs
 
-			for ( var name in geometry.morphTargets ) {
+			if( !geometry.morphTargetsMap ) {
+				geometry.morphTargetsMap = makeMap( geometry.morphTargets );
+			}
 
+			geometry.morphTargetsMap.forEach(function (morphTargets, name) {
 				var array = [];
-				var morphTargets = geometry.morphTargets[ name ];
 
 				for ( var i = 0, l = morphTargets.length; i < l; i ++ ) {
 
@@ -11555,8 +12049,7 @@
 				}
 
 				this.morphAttributes[ name ] = array;
-
-			}
+			});
 
 			// skinning
 
@@ -11592,7 +12085,7 @@
 
 		},
 
-		computeBoundingBox: function () {
+		computeBoundingBox: function ( explicitExpensiveMode ) {
 
 			if ( this.boundingBox === null ) {
 
@@ -11604,7 +12097,16 @@
 
 			if ( position !== undefined ) {
 
-				this.boundingBox.setFromBufferAttribute( position );
+				if ( ! explicitExpensiveMode ) {
+
+					this.boundingBox.setFromBufferAttribute( position );
+
+				} else {
+
+					this.boundingBox.setFromBufferAttribute( this.realPositionAttribute );
+
+				}
+
 
 			} else {
 
@@ -11625,7 +12127,14 @@
 			var box = new Box3();
 			var vector = new Vector3();
 
-			return function computeBoundingSphere() {
+			return function computeBoundingSphere( scale, explicitExpensiveMode ) {
+
+				if ( typeof scale === 'boolean' ) {
+
+					explicitExpensiveMode = scale;
+					scale = undefined;
+
+				}
 
 				if ( this.boundingSphere === null ) {
 
@@ -11639,7 +12148,24 @@
 
 					var center = this.boundingSphere.center;
 
-					box.setFromBufferAttribute( position );
+					if ( ! explicitExpensiveMode ) {
+
+						box.setFromBufferAttribute( position );
+
+					} else {
+
+						// Do NOT recalculate bounding box
+
+						if ( ! this.boundingBox ) {
+
+							this.computeBoundingBox( true );
+
+						}
+
+						box.copy( this.boundingBox );
+
+					}
+
 					box.getCenter( center );
 
 					// hoping to find a boundingSphere with a radius smaller than the
@@ -11647,16 +12173,23 @@
 
 					var maxRadiusSq = 0;
 
-					for ( var i = 0, il = position.count; i < il; i ++ ) {
+					var attribute = ! explicitExpensiveMode ? position : this.realPositionAttribute;
 
-						vector.x = position.getX( i );
-						vector.y = position.getY( i );
-						vector.z = position.getZ( i );
+					for ( var i = 0, il = attribute.count; i < il; i ++ ) {
+
+						vector.x = attribute.getX( i );
+						vector.y = attribute.getY( i );
+						vector.z = attribute.getZ( i );
 						maxRadiusSq = Math.max( maxRadiusSq, center.distanceToSquared( vector ) );
 
 					}
 
-					this.boundingSphere.radius = Math.sqrt( maxRadiusSq );
+					if(scale && scale.x) {
+						this.boundingSphere.radius = Math.sqrt(maxRadiusSq) * Math.max(Math.max(Math.abs(scale.x), Math.abs(scale.y)), Math.abs(scale.z));
+					} else {
+						this.boundingSphere.radius = Math.sqrt(maxRadiusSq);
+					}
+
 
 					if ( isNaN( this.boundingSphere.radius ) ) {
 
@@ -11665,6 +12198,8 @@
 					}
 
 				}
+
+				return this.boundingSphere;
 
 			};
 
@@ -11819,6 +12354,42 @@
 
 			var attributes = this.attributes;
 
+			var orgCount = this.attributes.position.count;
+
+			var newIndex = [];//new Float32Array( this.index.count * 2 );
+
+			var indicesByVertex = [];
+
+			this.index.array.forEach( ( el, ind ) => {
+
+				if ( indicesByVertex[ el ] === undefined ) {
+
+					indicesByVertex[ el ] = [ ind ];
+
+				} else {
+
+					indicesByVertex[ el ].push( ind );
+
+				}
+
+			} );
+
+			var addonIndicesByVertex = [];
+
+			geometry.index.array.forEach( ( el, ind ) => {
+
+				if ( addonIndicesByVertex[ el ] === undefined ) {
+
+					addonIndicesByVertex[ el ] = [ ind ];
+
+				} else {
+
+					addonIndicesByVertex[ el ].push( ind );
+
+				}
+
+			} );
+
 			for ( var key in attributes ) {
 
 				if ( geometry.attributes[ key ] === undefined ) continue;
@@ -11829,15 +12400,93 @@
 				var attribute2 = geometry.attributes[ key ];
 				var attributeArray2 = attribute2.array;
 
-				var attributeSize = attribute2.itemSize;
+				var newArray = new Float32Array( attributeArray1.length + attributeArray2.length );
 
-				for ( var i = 0, j = attributeSize * offset; i < attributeArray2.length; i ++, j ++ ) {
+				var offsetActual = attribute1.count * attribute1.itemSize * offset;
 
-					attributeArray1[ j ] = attributeArray2[ i ];
+				for ( var k = 0; k < attributeArray1.length; k ++ ) {
+
+					newArray[ k ] = attributeArray1[ k ];
 
 				}
 
+				for ( var i = 0, j = offsetActual; i < attributeArray2.length; i ++, j ++ ) {
+
+					newArray[ j ] = attributeArray2[ i ];
+
+				}
+
+				// this.removeAttribute( key );
+				// this.addAttribute( key, new BufferAttribute( newArray, attribute1.itemSize ) );
+
+				attributes[ key ].array = newArray;
+				attributes[ key ].count = newArray.length / attribute1.itemSize;
+				attributes[ key ].needsUpdate = true;
+
 			}
+
+			// rebuild index
+			this.groups.forEach( ( group, groupIndex ) => {
+
+				const groupStart = group.start;
+				const groupCount = group.count;
+				var addonGroup = geometry.groups.find( el2 => el2.materialIndex === group.materialIndex );
+				var addonStart = addonGroup.start;
+				var addonCount = addonGroup.count;
+
+				var mergedGroupStart = groupStart + addonStart;
+
+				// traverse old group
+				for ( var u = 0; u < groupCount; u ++ ) {
+
+					var v = this.index.array[ groupStart + u ];
+
+					var vtf = indicesByVertex[ v ].length;
+					for ( var o = 0; o < vtf; o ++ ) {
+
+						var indiceIndex = indicesByVertex[ v ][ o ];
+						var relativeToStartIndex = indiceIndex - groupStart;
+						newIndex[ mergedGroupStart + relativeToStartIndex ] = v;
+
+						// only worked for identical copies
+						// newIndex[ indiceIndex + start + groupCount ] = v + orgCount;
+
+					}
+
+				}
+
+				// traverse addon group
+				for ( var u = 0; u < addonCount; u ++ ) {
+
+					var v = geometry.index.array[ addonStart + u ];
+
+					var vtf = addonIndicesByVertex[ v ].length;
+					for ( var o = 0; o < vtf; o ++ ) {
+
+						var indiceIndex = addonIndicesByVertex[ v ][ o ];
+						var relativeToStartIndex = indiceIndex - addonStart;
+						newIndex[ mergedGroupStart + groupCount + relativeToStartIndex ] = v + orgCount;
+
+					}
+
+				}
+
+			} );
+
+			var oldGroups = this.groups;
+			var mergedInGroups = geometry.groups;
+
+			this.clearGroups();
+
+			oldGroups.forEach( el => {
+
+				var mergedInGroup = mergedInGroups.find( el2 => el2.materialIndex === el.materialIndex );
+
+				this.addGroup( el.start + mergedInGroup.start, el.count + mergedInGroup.count, el.materialIndex );
+
+			} );
+
+			this.setIndex( newIndex );
 
 			return this;
 
@@ -11862,6 +12511,157 @@
 					normals.setXYZ( i, vector.x, vector.y, vector.z );
 
 				}
+
+			};
+
+		}(),
+
+		toIndexed: function () {
+
+			let prec = 0;
+			let list = [];
+			let vertices = {};
+
+			function store( x, y, z, v ) {
+
+				const id = Math.floor( x * prec ) + '_' + Math.floor( y * prec ) + '_' + Math.floor( z * prec );
+
+				if ( vertices[ id ] === undefined ) {
+
+					vertices[ id ] = list.length;
+
+
+					list.push( v );
+
+				}
+
+				return vertices[ id ];
+
+			}
+
+	  	function indexBufferGeometry( src, dst ) {
+
+				const position = src.attributes.position.array;
+
+				const faceCount = ( position.length / 3 ) / 3;
+
+
+				const type = faceCount * 3 > 65536 ? Uint32Array : Uint16Array;
+
+				const indexArray = new type( faceCount * 3 );
+
+				for ( let i = 0, l = faceCount; i < l; i ++ ) {
+
+					const offset = i * 9;
+
+					indexArray[ i * 3 ] = store( position[ offset ], position[ offset + 1 ], position[ offset + 2 ], i * 3 );
+					indexArray[ i * 3 + 1 ] = store( position[ offset + 3 ], position[ offset + 4 ], position[ offset + 5 ], i * 3 + 1 );
+					indexArray[ i * 3 + 2 ] = store( position[ offset + 6 ], position[ offset + 7 ], position[ offset + 8 ], i * 3 + 2 );
+
+				}
+
+			  dst.index = new BufferAttribute( indexArray, 1 );
+
+			  const count = list.length;
+
+				for ( let key in src.attributes ) {
+
+					const src_attribute = src.attributes[ key ];
+					const dst_attribute = new BufferAttribute( new src_attribute.array.constructor( count * src_attribute.itemSize ), src_attribute.itemSize );
+
+					const dst_array = dst_attribute.array;
+					const src_array = src_attribute.array;
+
+					switch ( src_attribute.itemSize ) {
+
+						case 1:
+
+							for ( let i = 0, l = list.length; i < l; i ++ ) {
+
+							  dst_array[ i ] = src_array[ list[ i ] ];
+
+							}
+
+							break;
+						case 2:
+
+							for ( let i = 0, l = list.length; i < l; i ++ ) {
+
+								  const index = list[ i ] * 2;
+
+								  const offset = i * 2;
+
+								  dst_array[ offset ] = src_array[ index ];
+								  dst_array[ offset + 1 ] = src_array[ index + 1 ];
+
+							}
+
+							break;
+						case 3:
+
+							for ( let i = 0, l = list.length; i < l; i ++ ) {
+
+								  const index = list[ i ] * 3;
+
+								  const offset = i * 3;
+
+								  dst_array[ offset ] = src_array[ index ];
+								  dst_array[ offset + 1 ] = src_array[ index + 1 ];
+								  dst_array[ offset + 2 ] = src_array[ index + 2 ];
+
+							}
+
+							break;
+						case 4:
+
+							for ( let i = 0, l = list.length; i < l; i ++ ) {
+
+								  const index = list[ i ] * 4;
+
+								  const offset = i * 4;
+
+								  dst_array[ offset ] = src_array[ index ];
+								  dst_array[ offset + 1 ] = src_array[ index + 1 ];
+								  dst_array[ offset + 2 ] = src_array[ index + 2 ];
+								  dst_array[ offset + 3 ] = src_array[ index + 3 ];
+
+							}
+
+							break;
+
+					}
+
+					dst.attributes[ key ] = dst_attribute;
+
+				}
+
+
+			  dst.computeBoundingSphere();
+
+			  dst.computeBoundingBox();
+
+			  src.groups.forEach( group => {
+
+			  	dst.addGroup( group.start / 3, group.count / 3, group.materialIndex );
+
+			  } );
+
+			  // Release data
+
+			  vertices = {};
+			  list = [];
+
+	  	}
+
+			return function ( precision ) {
+
+				prec = Math.pow( 10, precision || 6 );
+
+				const geometry = new BufferGeometry();
+
+				indexBufferGeometry( this, geometry );
+
+				return geometry;
 
 			};
 
@@ -12137,7 +12937,65 @@
 
 			this.dispatchEvent( { type: 'dispose' } );
 
-		}
+		},
+
+		expensiveCalculateVertices: ( function () {
+
+			var i, l;
+			var properties = [ 'x', 'y', 'z', 'w' ];
+			var temp2 = new Vector3(), skinIndex = new Vector4(), skinWeights = new Vector4();
+			var temp = new Vector3(), tempMatrix = new Matrix4(), properties = [ 'x', 'y', 'z', 'w' ];
+			var result = new Vector3();
+
+			return function expensiveCalculateVertices( meshRef ) {
+
+				const position = this.attributes.position;
+
+				if ( this.realPositionAttribute === null ) {
+
+					this.realPositionAttribute = position.clone();
+
+				}
+
+				for ( i = 0, l = this.index.count; i < l; i ++ ) {
+
+					var idx = this.index.getX( i );
+					var index4 = idx << 2;
+					var typedOffset = idx * position.itemSize;
+
+					skinIndex.fromArray( this.attributes.skinIndex.array, index4 );
+					skinWeights.fromArray( this.attributes.skinWeight.array, index4 );
+					temp.fromArray( position.array, typedOffset );
+					temp.applyMatrix4( meshRef.bindMatrix );
+					result.set( 0, 0, 0 );
+
+					for ( var j = 0; j < 4; j ++ ) {
+
+						var prop = properties[ j ];
+
+						var skinWeight = skinWeights[ prop ];
+						var boneIndex = skinIndex[ prop ];
+
+						if ( skinWeight != 0 ) {
+
+							tempMatrix.multiplyMatrices( meshRef.skeleton.bones[ boneIndex ].matrixWorld, meshRef.skeleton.boneInverses[ boneIndex ] );
+							result.add( temp2.copy( temp ).applyMatrix4( tempMatrix ).multiplyScalar( skinWeight ) );
+
+						}
+
+					}
+
+					result.applyMatrix4( meshRef.bindMatrixInverse );
+
+					this.realPositionAttribute.setX( idx, result.x );
+					this.realPositionAttribute.setY( idx, result.y );
+					this.realPositionAttribute.setZ( idx, result.z );
+
+				}
+
+			};
+
+		} )(),
 
 	} );
 
@@ -13603,155 +14461,11 @@
 
 	/**
 	 * @author bhouston / http://clara.io
-	 */
-
-	function Line3( start, end ) {
-
-		this.start = ( start !== undefined ) ? start : new Vector3();
-		this.end = ( end !== undefined ) ? end : new Vector3();
-
-	}
-
-	Object.assign( Line3.prototype, {
-
-		set: function ( start, end ) {
-
-			this.start.copy( start );
-			this.end.copy( end );
-
-			return this;
-
-		},
-
-		clone: function () {
-
-			return new this.constructor().copy( this );
-
-		},
-
-		copy: function ( line ) {
-
-			this.start.copy( line.start );
-			this.end.copy( line.end );
-
-			return this;
-
-		},
-
-		getCenter: function ( target ) {
-
-			if ( target === undefined ) {
-
-				console.warn( 'THREE.Line3: .getCenter() target is now required' );
-				target = new Vector3();
-
-			}
-
-			return target.addVectors( this.start, this.end ).multiplyScalar( 0.5 );
-
-		},
-
-		delta: function ( target ) {
-
-			if ( target === undefined ) {
-
-				console.warn( 'THREE.Line3: .delta() target is now required' );
-				target = new Vector3();
-
-			}
-
-			return target.subVectors( this.end, this.start );
-
-		},
-
-		distanceSq: function () {
-
-			return this.start.distanceToSquared( this.end );
-
-		},
-
-		distance: function () {
-
-			return this.start.distanceTo( this.end );
-
-		},
-
-		at: function ( t, target ) {
-
-			if ( target === undefined ) {
-
-				console.warn( 'THREE.Line3: .at() target is now required' );
-				target = new Vector3();
-
-			}
-
-			return this.delta( target ).multiplyScalar( t ).add( this.start );
-
-		},
-
-		closestPointToPointParameter: function () {
-
-			var startP = new Vector3();
-			var startEnd = new Vector3();
-
-			return function closestPointToPointParameter( point, clampToLine ) {
-
-				startP.subVectors( point, this.start );
-				startEnd.subVectors( this.end, this.start );
-
-				var startEnd2 = startEnd.dot( startEnd );
-				var startEnd_startP = startEnd.dot( startP );
-
-				var t = startEnd_startP / startEnd2;
-
-				if ( clampToLine ) {
-
-					t = _Math.clamp( t, 0, 1 );
-
-				}
-
-				return t;
-
-			};
-
-		}(),
-
-		closestPointToPoint: function ( point, clampToLine, target ) {
-
-			var t = this.closestPointToPointParameter( point, clampToLine );
-
-			if ( target === undefined ) {
-
-				console.warn( 'THREE.Line3: .closestPointToPoint() target is now required' );
-				target = new Vector3();
-
-			}
-
-			return this.delta( target ).multiplyScalar( t ).add( this.start );
-
-		},
-
-		applyMatrix4: function ( matrix ) {
-
-			this.start.applyMatrix4( matrix );
-			this.end.applyMatrix4( matrix );
-
-			return this;
-
-		},
-
-		equals: function ( line ) {
-
-			return line.start.equals( this.start ) && line.end.equals( this.end );
-
-		}
-
-	} );
-
-	/**
-	 * @author bhouston / http://clara.io
 	 * @author mrdoob / http://mrdoob.com/
 	 */
+
+	var _v0, _v1, _v2, _v3;
+	var _vab, _vac, _vbc, _vap, _vbp, _vcp;
 
 	function Triangle( a, b, c ) {
 
@@ -13763,98 +14477,122 @@
 
 	Object.assign( Triangle, {
 
-		getNormal: function () {
+		getNormal: function ( a, b, c, target ) {
 
-			var v0 = new Vector3();
+			if ( _v0 === undefined ) _v0 = new Vector3();
 
-			return function getNormal( a, b, c, target ) {
+			if ( target === undefined ) {
 
-				if ( target === undefined ) {
+				console.warn( 'THREE.Triangle: .getNormal() target is now required' );
+				target = new Vector3();
 
-					console.warn( 'THREE.Triangle: .getNormal() target is now required' );
-					target = new Vector3();
+			}
 
-				}
+			target.subVectors( c, b );
+			_v0.subVectors( a, b );
+			target.cross( _v0 );
 
-				target.subVectors( c, b );
-				v0.subVectors( a, b );
-				target.cross( v0 );
+			var targetLengthSq = target.lengthSq();
+			if ( targetLengthSq > 0 ) {
 
-				var targetLengthSq = target.lengthSq();
-				if ( targetLengthSq > 0 ) {
+				return target.multiplyScalar( 1 / Math.sqrt( targetLengthSq ) );
 
-					return target.multiplyScalar( 1 / Math.sqrt( targetLengthSq ) );
+			}
 
-				}
+			return target.set( 0, 0, 0 );
 
-				return target.set( 0, 0, 0 );
-
-			};
-
-		}(),
+		},
 
 		// static/instance method to calculate barycentric coordinates
 		// based on: http://www.blackpawn.com/texts/pointinpoly/default.html
-		getBarycoord: function () {
+		getBarycoord: function ( point, a, b, c, target ) {
 
-			var v0 = new Vector3();
-			var v1 = new Vector3();
-			var v2 = new Vector3();
+			if ( _v2 === undefined ) {
 
-			return function getBarycoord( point, a, b, c, target ) {
+				_v0 = new Vector3();
+				_v1 = new Vector3();
+				_v2 = new Vector3();
 
-				v0.subVectors( c, a );
-				v1.subVectors( b, a );
-				v2.subVectors( point, a );
+			}
 
-				var dot00 = v0.dot( v0 );
-				var dot01 = v0.dot( v1 );
-				var dot02 = v0.dot( v2 );
-				var dot11 = v1.dot( v1 );
-				var dot12 = v1.dot( v2 );
+			_v0.subVectors( c, a );
+			_v1.subVectors( b, a );
+			_v2.subVectors( point, a );
 
-				var denom = ( dot00 * dot11 - dot01 * dot01 );
+			var dot00 = _v0.dot( _v0 );
+			var dot01 = _v0.dot( _v1 );
+			var dot02 = _v0.dot( _v2 );
+			var dot11 = _v1.dot( _v1 );
+			var dot12 = _v1.dot( _v2 );
 
-				if ( target === undefined ) {
+			var denom = ( dot00 * dot11 - dot01 * dot01 );
 
-					console.warn( 'THREE.Triangle: .getBarycoord() target is now required' );
-					target = new Vector3();
+			if ( target === undefined ) {
 
-				}
+				console.warn( 'THREE.Triangle: .getBarycoord() target is now required' );
+				target = new Vector3();
 
-				// collinear or singular triangle
-				if ( denom === 0 ) {
+			}
 
-					// arbitrary location outside of triangle?
-					// not sure if this is the best idea, maybe should be returning undefined
-					return target.set( - 2, - 1, - 1 );
+			// collinear or singular triangle
+			if ( denom === 0 ) {
 
-				}
+				// arbitrary location outside of triangle?
+				// not sure if this is the best idea, maybe should be returning undefined
+				return target.set( - 2, - 1, - 1 );
 
-				var invDenom = 1 / denom;
-				var u = ( dot11 * dot02 - dot01 * dot12 ) * invDenom;
-				var v = ( dot00 * dot12 - dot01 * dot02 ) * invDenom;
+			}
 
-				// barycentric coordinates must always sum to 1
-				return target.set( 1 - u - v, v, u );
+			var invDenom = 1 / denom;
+			var u = ( dot11 * dot02 - dot01 * dot12 ) * invDenom;
+			var v = ( dot00 * dot12 - dot01 * dot02 ) * invDenom;
 
-			};
+			// barycentric coordinates must always sum to 1
+			return target.set( 1 - u - v, v, u );
 
-		}(),
+		},
 
-		containsPoint: function () {
+		containsPoint: function ( point, a, b, c ) {
 
-			var v1 = new Vector3();
+			if ( _v3 === undefined ) _v3 = new Vector3();
 
-			return function containsPoint( point, a, b, c ) {
+			Triangle.getBarycoord( point, a, b, c, _v3 );
 
-				Triangle.getBarycoord( point, a, b, c, v1 );
+			return ( _v3.x >= 0 ) && ( _v3.y >= 0 ) && ( ( _v3.x + _v3.y ) <= 1 );
 
-				return ( v1.x >= 0 ) && ( v1.y >= 0 ) && ( ( v1.x + v1.y ) <= 1 );
+		},
 
-			};
+		getUV: function ( point, p1, p2, p3, uv1, uv2, uv3, target ) {
 
-		}()
+			if ( _v3 === undefined ) _v3 = new Vector3();
+
+			this.getBarycoord( point, p1, p2, p3, _v3 );
+
+			target.set( 0, 0 );
+			target.addScaledVector( uv1, _v3.x );
+			target.addScaledVector( uv2, _v3.y );
+			target.addScaledVector( uv3, _v3.z );
+
+			return target;
+
+		},
+
+		isFrontFacing: function ( a, b, c, direction ) {
+
+			if ( _v1 === undefined ) {
+
+				_v0 = new Vector3();
+				_v1 = new Vector3();
+
+			}
+
+			_v0.subVectors( c, b );
+			_v1.subVectors( a, b );
+
+			// strictly front facing
+			return ( _v0.cross( _v1 ).dot( direction ) < 0 ) ? true : false;
+
+		}
 
 	} );
 
@@ -13898,19 +14636,19 @@
 
 		getArea: function () {
 
-			var v0 = new Vector3();
-			var v1 = new Vector3();
+			if ( _v1 === undefined ) {
 
-			return function getArea() {
+				_v0 = new Vector3();
+				_v1 = new Vector3();
 
-				v0.subVectors( this.c, this.b );
-				v1.subVectors( this.a, this.b );
+			}
 
-				return v0.cross( v1 ).length() * 0.5;
+			_v0.subVectors( this.c, this.b );
+			_v1.subVectors( this.a, this.b );
 
-			};
+			return _v0.cross( _v1 ).length() * 0.5;
 
-		}(),
+		},
 
 		getMidpoint: function ( target ) {
 
@@ -13950,9 +14688,21 @@
 
 		},
 
+		getUV: function ( point, uv1, uv2, uv3, target ) {
+
+			return Triangle.getUV( point, this.a, this.b, this.c, uv1, uv2, uv3, target );
+
+		},
+
 		containsPoint: function ( point ) {
 
 			return Triangle.containsPoint( point, this.a, this.b, this.c );
+
+		},
+
+		isFrontFacing: function ( direction ) {
+
+			return Triangle.isFrontFacing( this.a, this.b, this.c, direction );
 
 		},
 
@@ -13962,68 +14712,104 @@
 
 		},
 
-		closestPointToPoint: function () {
+		closestPointToPoint: function ( p, target ) {
 
-			var plane = new Plane();
-			var edgeList = [ new Line3(), new Line3(), new Line3() ];
-			var projectedPoint = new Vector3();
-			var closestPoint = new Vector3();
+			if ( _vab === undefined ) {
 
-			return function closestPointToPoint( point, target ) {
+				_vab = new Vector3();
+				_vac = new Vector3();
+				_vbc = new Vector3();
+				_vap = new Vector3();
+				_vbp = new Vector3();
+				_vcp = new Vector3();
 
-				if ( target === undefined ) {
+			}
 
-					console.warn( 'THREE.Triangle: .closestPointToPoint() target is now required' );
-					target = new Vector3();
+			if ( target === undefined ) {
 
-				}
+				console.warn( 'THREE.Triangle: .closestPointToPoint() target is now required' );
+				target = new Vector3();
 
-				var minDistance = Infinity;
+			}
 
-				// project the point onto the plane of the triangle
+			var a = this.a, b = this.b, c = this.c;
+			var v, w;
 
-				plane.setFromCoplanarPoints( this.a, this.b, this.c );
-				plane.projectPoint( point, projectedPoint );
+			// algorithm thanks to Real-Time Collision Detection by Christer Ericson,
+			// published by Morgan Kaufmann Publishers, (c) 2005 Elsevier Inc.,
+			// under the accompanying license; see chapter 5.1.5 for detailed explanation.
+			// basically, we're distinguishing which of the voronoi regions of the triangle
+			// the point lies in with the minimum amount of redundant computation.
 
-				// check if the projection lies within the triangle
+			_vab.subVectors( b, a );
+			_vac.subVectors( c, a );
+			_vap.subVectors( p, a );
+			var d1 = _vab.dot( _vap );
+			var d2 = _vac.dot( _vap );
+			if ( d1 <= 0 && d2 <= 0 ) {
 
-				if ( this.containsPoint( projectedPoint ) === true ) {
+				// vertex region of A; barycentric coords (1, 0, 0)
+				return target.copy( a );
 
-					// if so, this is the closest point
+			}
 
-					target.copy( projectedPoint );
+			_vbp.subVectors( p, b );
+			var d3 = _vab.dot( _vbp );
+			var d4 = _vac.dot( _vbp );
+			if ( d3 >= 0 && d4 <= d3 ) {
 
-				} else {
+				// vertex region of B; barycentric coords (0, 1, 0)
+				return target.copy( b );
 
-					// if not, the point falls outside the triangle. the target is the closest point to the triangle's edges or vertices
+			}
 
-					edgeList[ 0 ].set( this.a, this.b );
-					edgeList[ 1 ].set( this.b, this.c );
-					edgeList[ 2 ].set( this.c, this.a );
+			var vc = d1 * d4 - d3 * d2;
+			if ( vc <= 0 && d1 >= 0 && d3 <= 0 ) {
 
-					for ( var i = 0; i < edgeList.length; i ++ ) {
+				v = d1 / ( d1 - d3 );
+				// edge region of AB; barycentric coords (1-v, v, 0)
+				return target.copy( a ).addScaledVector( _vab, v );
 
-						edgeList[ i ].closestPointToPoint( projectedPoint, true, closestPoint );
+			}
 
-						var distance = projectedPoint.distanceToSquared( closestPoint );
+			_vcp.subVectors( p, c );
+			var d5 = _vab.dot( _vcp );
+			var d6 = _vac.dot( _vcp );
+			if ( d6 >= 0 && d5 <= d6 ) {
 
-						if ( distance < minDistance ) {
+				// vertex region of C; barycentric coords (0, 0, 1)
+				return target.copy( c );
 
-							minDistance = distance;
+			}
 
-							target.copy( closestPoint );
+			var vb = d5 * d2 - d1 * d6;
+			if ( vb <= 0 && d2 >= 0 && d6 <= 0 ) {
 
-						}
+				w = d2 / ( d2 - d6 );
+				// edge region of AC; barycentric coords (1-w, 0, w)
+				return target.copy( a ).addScaledVector( _vac, w );
 
-					}
+			}
 
-				}
+			var va = d3 * d6 - d5 * d4;
+			if ( va <= 0 && ( d4 - d3 ) >= 0 && ( d5 - d6 ) >= 0 ) {
 
-				return target;
+				_vbc.subVectors( c, b );
+				w = ( d4 - d3 ) / ( ( d4 - d3 ) + ( d5 - d6 ) );
+				// edge region of BC; barycentric coords (0, 1-w, w)
+				return target.copy( b ).addScaledVector( _vbc, w ); // edge region of BC
 
-			};
+			}
 
-		}(),
+			// face region
+			var denom = 1 / ( va + vb + vc );
+			// u = va * denom
+			v = vb * denom;
+			w = vc * denom;
+
+			return target.copy( a ).addScaledVector( _vab, v ).addScaledVector( _vac, w );
+
+		},
 
 		equals: function ( triangle ) {
 
@@ -14050,6 +14836,7 @@
 		this.material = material !== undefined ? material : new MeshBasicMaterial( { color: Math.random() * 0xffffff } );
 
 		this.drawMode = TrianglesDrawMode;
+		this.lod = [];
 
 		this.updateMorphTargets();
 
@@ -14072,6 +14859,7 @@
 			Object3D.prototype.copy.call( this, source );
 
 			this.drawMode = source.drawMode;
+			this.lod = source.lod;
 
 			if ( source.morphTargetInfluences !== undefined ) {
 
@@ -14149,7 +14937,6 @@
 
 			var inverseMatrix = new Matrix4();
 			var ray = new Ray();
-			var sphere = new Sphere();
 
 			var vA = new Vector3();
 			var vB = new Vector3();
@@ -14162,6 +14949,8 @@
 			var uvA = new Vector2();
 			var uvB = new Vector2();
 			var uvC = new Vector2();
+
+			var target = new Vector3();
 
 			var barycoord = new Vector3();
 
@@ -14192,7 +14981,7 @@
 
 				} else {
 
-					intersect = ray.intersectTriangle( pA, pB, pC, material.side !== DoubleSide, point );
+					intersect = ray.intersectTriangle( pA, pB, pC, false, point );
 
 				}
 
@@ -14201,12 +14990,12 @@
 				intersectionPointWorld.copy( point );
 				intersectionPointWorld.applyMatrix4( object.matrixWorld );
 
-				var distance = raycaster.ray.origin.distanceTo( intersectionPointWorld );
+				var distanceSq = raycaster.ray.origin.distanceToSquared( intersectionPointWorld );
 
-				if ( distance < raycaster.near || distance > raycaster.far ) return null;
+				if ( distanceSq < ( raycaster.near * raycaster.near ) || distanceSq > ( raycaster.far * raycaster.far ) ) return null;
 
 				return {
-					distance: distance,
+					distanceSq: distanceSq,
 					point: intersectionPointWorld.clone(),
 					object: object
 				};
@@ -14237,6 +15026,7 @@
 					Triangle.getNormal( vA, vB, vC, face.normal );
 
 					intersection.face = face;
+
 					intersection.faceIndex = a;
 
 				}
@@ -14249,30 +15039,42 @@
 
 				var geometry = this.geometry;
 				var material = this.material;
-				var matrixWorld = this.matrixWorld;
 
 				if ( material === undefined ) return;
 
 				// Checking boundingSphere distance to ray
 
-				if ( geometry.boundingSphere === null ) geometry.computeBoundingSphere();
+				if ( geometry.boundingSphere === null ) geometry.computeBoundingSphere(this.scale);
 
-				sphere.copy( geometry.boundingSphere );
-				sphere.applyMatrix4( matrixWorld );
-
-				if ( raycaster.ray.intersectsSphere( sphere ) === false ) return;
+				// TODO: this will be problematic when an object is rotated it's not that simple to just add building sphere offset
+				// need to create getWorldBuildingSphere or something like that to get real center
+				var size = raycaster.far + geometry.boundingSphere.radius;
+				if ( raycaster.ray.distanceSqToPoint( this.getWorldPosition( tempA ).add( geometry.boundingSphere.center ) ) > ( size * size ) ) {
+					return;
+				}
 
 				//
 
-				inverseMatrix.getInverse( matrixWorld );
+				inverseMatrix.getInverse( this.matrixWorld );
 				ray.copy( raycaster.ray ).applyMatrix4( inverseMatrix );
 
 				// Check boundingBox before continuing
 
-				if ( geometry.boundingBox !== null ) {
+				if ( geometry.boundingBox === null ) {
+					geometry.computeBoundingBox();
+				}
 
-					if ( ray.intersectsBox( geometry.boundingBox ) === false ) return;
+				var boxIntersects = ray.intersectBox( geometry.boundingBox, target );
+				if ( boxIntersects === null ) {
+					return;
+				}
 
+				var boxDistSquared = ray.origin.distanceToSquared( boxIntersects );
+
+				// this one is tricky because if you're next to irregular shape the distance from bbox
+				// the distance to the bounding box can be increasing the closer you get to the actual shape
+				if ( boxDistSquared > ( raycaster.far * raycaster.far ) && !geometry.boundingBox.containsPoint(ray.origin) ) {
+					return;
 				}
 
 				var intersection;
@@ -14416,6 +15218,124 @@
 		}
 
 	} );
+
+	// copy position, rotation and scale from source object
+	Mesh.prototype.copyAllTransforms = function(source) {
+
+		this.position.copy(source.position);
+		this.rotation.copy(source.rotation);
+		this.scale.copy(source.scale);
+		this.updateMatrix();
+		this.updateMatrixWorldNoChildren();
+
+	};
+
+	Mesh.prototype.getScene = function() {
+
+		if (this.isRoot()) {
+			return this.parent;
+		} else {
+			return this.getRoot().parent;
+		}
+
+	};
+
+
+	Mesh.prototype.prepareForSend = function() {
+
+		var root = null;
+
+		if (!this.isRoot()) {
+			var rootEl = this.getRoot();
+
+			root = {
+				position: rootEl.position.toArray(),
+				quaternion: rootEl.quaternion.toArray(),
+				scale: rootEl.scale.toArray(),
+				name: rootEl.name
+			};
+		}
+
+		var sendData = {
+			uuid: this.uuid,
+			modelClass: this.modelClass,
+			position: this.position.toArray(),
+			quaternion: this.quaternion.toArray(),
+			scale: this.scale.toArray(),
+			name: this.name
+		};
+
+		if (root) {
+			sendData.root = root;
+		}
+
+		return sendData;
+
+	};
+
+	// quick check before proper raycasting
+	Mesh.prototype.raycastSphereOnly = (function() {
+
+		var sphere = new Sphere();
+
+		return function(raycaster, intersects) {
+
+			var geometry = this.geometry;
+
+			// Checking boundingSphere distance to ray
+
+			if (geometry.boundingSphere === null) geometry.computeBoundingSphere(this.scale);
+
+			sphere.copy(geometry.boundingSphere);
+			sphere.applyMatrix4(this.matrixWorld);
+
+			return raycaster.ray.intersectsSphere(sphere);
+
+		};
+	})();
+
+	Mesh.prototype.raycastBBoxOnly = (function() {
+		var ray = new Ray();
+		var inverseMatrix = new Matrix4();
+		var tempPoint = new Vector3();
+
+		return function raycastBBoxOnly(raycaster, predefinedTarget) {
+			var target = predefinedTarget || new Vector3();
+			var geometry = this.geometry;
+			var maxDistSq = raycaster.far * raycaster.far;
+			// Checking boundingSphere distance to ray
+
+			if (geometry.boundingSphere === null) geometry.computeBoundingSphere(this.scale);
+
+			// optimization to getWorldPosition is only faster if getWorldPosition is also optimized!
+			var sphereDistSq = raycaster.ray.distanceSqToPoint( this.getWorldPosition( tempPoint ) ) - geometry.boundingSphere.radius * geometry.boundingSphere.radius;
+
+			if ( sphereDistSq > 0 && sphereDistSq > maxDistSq ) {
+				return;
+			}
+
+			// Check boundingBox before continuing
+			inverseMatrix.getInverse( this.matrixWorld );
+			ray.copy( raycaster.ray ).applyMatrix4( inverseMatrix );
+
+			if ( geometry.boundingBox === null ) {
+				geometry.computeBoundingBox();
+			}
+			var boxIntersect = ray.intersectBox( geometry.boundingBox, target );
+			if (boxIntersect === null) {
+				return;
+			}
+			var boxDistSq = ray.origin.distanceToSquared( boxIntersect );
+
+			if ( boxDistSq > maxDistSq && !geometry.boundingBox.containsPoint(ray.origin) ) {
+				return;
+			}
+
+			boxIntersect.distanceSq = boxDistSq;
+
+			return boxIntersect;
+		};
+	})();
 
 	/**
 	 * @author mrdoob / http://mrdoob.com/
@@ -15384,6 +16304,11 @@
 			var geometry = object.geometry;
 			var buffergeometry = geometries.get( object, geometry );
 
+			if( object.updated ) return object.geometry;
+
+			object.updated = true;
+
+
 			// Update once per frame
 
 			if ( updateList[ buffergeometry.id ] !== frame ) {
@@ -16233,6 +17158,27 @@
 
 	}
 
+	function fetchAttributeLocationsMap ( gl, program, identifiers ) {
+
+		var attributes = new Map();
+
+		var n = gl.getProgramParameter( program, gl.ACTIVE_ATTRIBUTES );
+
+		for ( var i = 0; i < n; i ++ ) {
+
+			var info = gl.getActiveAttrib( program, i );
+			var name = info.name;
+
+			// console.log("THREE.WebGLProgram: ACTIVE VERTEX ATTRIBUTE:", name, i );
+
+			attributes.set(name, gl.getAttribLocation( program, name ));
+
+		}
+
+		return attributes;
+
+	}
+
 	function filterEmptyLine( string ) {
 
 		return string !== '';
@@ -16715,7 +17661,7 @@
 
 		};
 
-		// set up caching for attribute locations
+		// set up caching for attribute locations map
 
 		var cachedAttributes;
 
@@ -16728,6 +17674,22 @@
 			}
 
 			return cachedAttributes;
+
+		};
+
+		// set up caching for attribute locations map
+
+		var cachedAttributesMap;
+
+		this.getAttributesMap = function() {
+
+			if ( cachedAttributesMap === undefined ) {
+
+				cachedAttributesMap = fetchAttributeLocationsMap( gl, program );
+
+			}
+
+			return cachedAttributesMap;
 
 		};
 
@@ -17414,13 +18376,93 @@
 		var matrix4 = new Matrix4();
 		var matrix42 = new Matrix4();
 
+		var maxSpotLights = 2;
+		// 1. We don't want lights hash to change - this would trigger needsUpdate on materials!
+		// 2. We want to keep a pool of 6 lights to be reused when needed
+		// 3. In case of adding more than 6 lights, only placeholder objects should be created
+		function setupSpotlightsFromPool (lights, camera) {
+			var spotLightsPool = [];
+			var spotLength = 0;
+			var viewMatrix = camera.matrixWorldInverse;
+
+			// get all spotlights into an array
+			for ( var l = 0, ll = lights.length; l < ll; l ++ ) {
+				var light = lights[l];
+
+				if(light.isSpotLight) {
+					spotLightsPool.push(light);
+
+					var distnaceSquared = vector3.setFromMatrixPosition(light.matrixWorld).distanceToSquared(camera.parent ? camera.parent.position : new Vector3(0, 0, 0));
+					var inFrustum = (light.parent && light.parent.inFrustum) ? 1 : 3; // not being in frustum makes lights 5 times less important than those in
+					if(!light.parent) {
+						inFrustum = camera.sphereInFov(light.position.x, light.position.z, 5) ? 1 : 3;
+					}
+
+					light.priority = light.priority || 1;
+					light.priorityDistanceFromCamera = distnaceSquared * light.priority * inFrustum;
+					if(distnaceSquared > 40 * 40 && inFrustum > 1) {
+						// if not in frustum and far completelty kill
+						light.priorityDistanceFromCamera *= 100000;
+					}
+					// light turned off? bottom of priority
+					if(light.intensity === 0) {
+						light.priorityDistanceFromCamera *= 100000000;
+					}
+				}
+			}
+
+			// sort by importance
+			spotLightsPool.sort(function (a, b) {
+				return a.priorityDistanceFromCamera - b.priorityDistanceFromCamera;
+			});
+			for ( l = 0, ll = Math.min(spotLightsPool.length, maxSpotLights); l < ll; l++ ) {
+				var light = spotLightsPool[l];
+				var uniforms = cache.get( light );
+
+				uniforms.position.setFromMatrixPosition( light.matrixWorld );
+				uniforms.position.applyMatrix4( viewMatrix );
+
+				uniforms.color.copy( light.color ).multiplyScalar( light.intensity );
+				uniforms.distance = light.distance;
+
+				uniforms.direction.setFromMatrixPosition( light.matrixWorld );
+				vector3.setFromMatrixPosition( light.target.matrixWorld );
+				uniforms.direction.sub( vector3 );
+				uniforms.direction.transformDirection( viewMatrix );
+
+				uniforms.coneCos = Math.cos( light.angle );
+				uniforms.penumbraCos = Math.cos( light.angle * ( 1 - light.penumbra ) );
+				uniforms.decay = ( light.distance === 0 ) ? 0.0 : light.decay;
+
+				uniforms.shadow = light.castShadow;
+				if ( light.castShadow ) {
+
+					var shadow = light.shadow;
+
+					uniforms.shadowBias = shadow.bias;
+					uniforms.shadowRadius = shadow.radius;
+					uniforms.shadowMapSize = shadow.mapSize;
+
+				}
+
+				var shadowMap = ( light.shadow && light.shadow.map ) ? light.shadow.map.texture : null;
+
+				state.spotShadowMap[ spotLength ] = shadowMap;
+				state.spotShadowMatrix[ spotLength ] = light.shadow.matrix;
+				state.spot[ spotLength++ ] = uniforms;
+
+			}
+			return spotLength;
+
+		}
+
 		function setup( lights, shadows, camera ) {
 
 			var r = 0, g = 0, b = 0;
 
 			var directionalLength = 0;
 			var pointLength = 0;
-			var spotLength = 0;
+			var spotLength = setupSpotlightsFromPool(lights, camera);
 			var rectAreaLength = 0;
 			var hemiLength = 0;
 
@@ -17472,40 +18514,40 @@
 
 				} else if ( light.isSpotLight ) {
 
-					var uniforms = cache.get( light );
+					// var uniforms = cache.get( light );
 
-					uniforms.position.setFromMatrixPosition( light.matrixWorld );
-					uniforms.position.applyMatrix4( viewMatrix );
+					// uniforms.position.setFromMatrixPosition( light.matrixWorld );
+					// uniforms.position.applyMatrix4( viewMatrix );
 
-					uniforms.color.copy( color ).multiplyScalar( intensity );
-					uniforms.distance = distance;
+					// uniforms.color.copy( color ).multiplyScalar( intensity );
+					// uniforms.distance = distance;
 
-					uniforms.direction.setFromMatrixPosition( light.matrixWorld );
-					vector3.setFromMatrixPosition( light.target.matrixWorld );
-					uniforms.direction.sub( vector3 );
-					uniforms.direction.transformDirection( viewMatrix );
+					// uniforms.direction.setFromMatrixPosition( light.matrixWorld );
+					// vector3.setFromMatrixPosition( light.target.matrixWorld );
+					// uniforms.direction.sub( vector3 );
+					// uniforms.direction.transformDirection( viewMatrix );
 
-					uniforms.coneCos = Math.cos( light.angle );
-					uniforms.penumbraCos = Math.cos( light.angle * ( 1 - light.penumbra ) );
-					uniforms.decay = ( light.distance === 0 ) ? 0.0 : light.decay;
+					// uniforms.coneCos = Math.cos( light.angle );
+					// uniforms.penumbraCos = Math.cos( light.angle * ( 1 - light.penumbra ) );
+					// uniforms.decay = ( light.distance === 0 ) ? 0.0 : light.decay;
 
-					uniforms.shadow = light.castShadow;
+					// uniforms.shadow = light.castShadow;
 
-					if ( light.castShadow ) {
+					// if ( light.castShadow ) {
 
-						var shadow = light.shadow;
+					// 	var shadow = light.shadow;
 
-						uniforms.shadowBias = shadow.bias;
-						uniforms.shadowRadius = shadow.radius;
-						uniforms.shadowMapSize = shadow.mapSize;
+					// 	uniforms.shadowBias = shadow.bias;
+					// 	uniforms.shadowRadius = shadow.radius;
+					// 	uniforms.shadowMapSize = shadow.mapSize;
 
-					}
+					// }
 
-					state.spotShadowMap[ spotLength ] = shadowMap;
-					state.spotShadowMatrix[ spotLength ] = light.shadow.matrix;
-					state.spot[ spotLength ] = uniforms;
+					// state.spotShadowMap[ spotLength ] = shadowMap;
+					// state.spotShadowMatrix[ spotLength ] = light.shadow.matrix;
+					// state.spot[ spotLength ] = uniforms;
 
-					spotLength ++;
+					// spotLength ++;
 
 				} else if ( light.isRectAreaLight ) {
 
@@ -18077,8 +19119,8 @@
 						0.0, 0.0, 0.0, 1.0
 					);
 
-					shadowMatrix.multiply( shadowCamera.projectionMatrix );
-					shadowMatrix.multiply( shadowCamera.matrixWorldInverse );
+					shadowMatrix.multiplyIncludingBottomRow( shadowCamera.projectionMatrix );
+					shadowMatrix.multiplyIncludingBottomRow( shadowCamera.matrixWorldInverse );
 
 				}
 
@@ -18105,12 +19147,15 @@
 
 					// update camera matrices and frustum
 
-					_projScreenMatrix.multiplyMatrices( shadowCamera.projectionMatrix, shadowCamera.matrixWorldInverse );
+					_projScreenMatrix.multiplyMatricesIncludingBottomRow( shadowCamera.projectionMatrix, shadowCamera.matrixWorldInverse );
 					_frustum.setFromMatrix( _projScreenMatrix );
 
 					// set object matrices & frustum culling
 
-					renderObject( scene, camera, shadowCamera, isPointLight );
+					var children = scene.children;
+					for ( var i = 0, l = children.length; i < l; i ++ ) {
+						renderObject( children[ i ], camera, shadowCamera, isPointLight );
+					}
 
 				}
 
@@ -18238,7 +19283,7 @@
 
 			if ( visible && ( object.isMesh || object.isLine || object.isPoints ) ) {
 
-				if ( object.castShadow && ( ! object.frustumCulled || _frustum.intersectsObject( object ) ) ) {
+				if ( object.castShadow && ( ( object.frustumCulled === false || object.inFrustum ) ) ) {
 
 					object.modelViewMatrix.multiplyMatrices( shadowCamera.matrixWorldInverse, object.matrixWorld );
 
@@ -18279,402 +19324,6 @@
 			for ( var i = 0, l = children.length; i < l; i ++ ) {
 
 				renderObject( children[ i ], camera, shadowCamera, isPointLight );
-
-			}
-
-		}
-
-	}
-
-	/**
-	 * @author mrdoob / http://mrdoob.com/
-	 */
-
-	function CanvasTexture( canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy ) {
-
-		Texture.call( this, canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy );
-
-		this.needsUpdate = true;
-
-	}
-
-	CanvasTexture.prototype = Object.create( Texture.prototype );
-	CanvasTexture.prototype.constructor = CanvasTexture;
-
-	/**
-	 * @author mikael emtinger / http://gomo.se/
-	 * @author alteredq / http://alteredqualia.com/
-	 */
-
-	function WebGLSpriteRenderer( renderer, gl, state, textures, capabilities ) {
-
-		var vertexBuffer, elementBuffer;
-		var program, attributes, uniforms;
-
-		var texture;
-
-		// decompose matrixWorld
-
-		var spritePosition = new Vector3();
-		var spriteRotation = new Quaternion();
-		var spriteScale = new Vector3();
-
-		function init() {
-
-			var vertices = new Float32Array( [
-				- 0.5, - 0.5, 0, 0,
-				  0.5, - 0.5, 1, 0,
-				  0.5, 0.5, 1, 1,
-				- 0.5, 0.5, 0, 1
-			] );
-
-			var faces = new Uint16Array( [
-				0, 1, 2,
-				0, 2, 3
-			] );
-
-			vertexBuffer = gl.createBuffer();
-			elementBuffer = gl.createBuffer();
-
-			gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
-			gl.bufferData( gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW );
-
-			gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, elementBuffer );
-			gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, faces, gl.STATIC_DRAW );
-
-			program = createProgram();
-
-			attributes = {
-				position: gl.getAttribLocation( program, 'position' ),
-				uv: gl.getAttribLocation( program, 'uv' )
-			};
-
-			uniforms = {
-				uvOffset: gl.getUniformLocation( program, 'uvOffset' ),
-				uvScale: gl.getUniformLocation( program, 'uvScale' ),
-
-				rotation: gl.getUniformLocation( program, 'rotation' ),
-				center: gl.getUniformLocation( program, 'center' ),
-				scale: gl.getUniformLocation( program, 'scale' ),
-
-				color: gl.getUniformLocation( program, 'color' ),
-				map: gl.getUniformLocation( program, 'map' ),
-				opacity: gl.getUniformLocation( program, 'opacity' ),
-
-				modelViewMatrix: gl.getUniformLocation( program, 'modelViewMatrix' ),
-				projectionMatrix: gl.getUniformLocation( program, 'projectionMatrix' ),
-
-				fogType: gl.getUniformLocation( program, 'fogType' ),
-				fogDensity: gl.getUniformLocation( program, 'fogDensity' ),
-				fogNear: gl.getUniformLocation( program, 'fogNear' ),
-				fogFar: gl.getUniformLocation( program, 'fogFar' ),
-				fogColor: gl.getUniformLocation( program, 'fogColor' ),
-				fogDepth: gl.getUniformLocation( program, 'fogDepth' ),
-
-				alphaTest: gl.getUniformLocation( program, 'alphaTest' )
-			};
-
-			var canvas = document.createElementNS( 'http://www.w3.org/1999/xhtml', 'canvas' );
-			canvas.width = 8;
-			canvas.height = 8;
-
-			var context = canvas.getContext( '2d' );
-			context.fillStyle = 'white';
-			context.fillRect( 0, 0, 8, 8 );
-
-			texture = new CanvasTexture( canvas );
-
-		}
-
-		this.render = function ( sprites, scene, camera ) {
-
-			if ( sprites.length === 0 ) return;
-
-			// setup gl
-
-			if ( program === undefined ) {
-
-				init();
-
-			}
-
-			state.useProgram( program );
-
-			state.initAttributes();
-			state.enableAttribute( attributes.position );
-			state.enableAttribute( attributes.uv );
-			state.disableUnusedAttributes();
-
-			state.disable( gl.CULL_FACE );
-			state.enable( gl.BLEND );
-
-			gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
-			gl.vertexAttribPointer( attributes.position, 2, gl.FLOAT, false, 2 * 8, 0 );
-			gl.vertexAttribPointer( attributes.uv, 2, gl.FLOAT, false, 2 * 8, 8 );
-
-			gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, elementBuffer );
-
-			gl.uniformMatrix4fv( uniforms.projectionMatrix, false, camera.projectionMatrix.elements );
-
-			state.activeTexture( gl.TEXTURE0 );
-			gl.uniform1i( uniforms.map, 0 );
-
-			var oldFogType = 0;
-			var sceneFogType = 0;
-			var fog = scene.fog;
-
-			if ( fog ) {
-
-				gl.uniform3f( uniforms.fogColor, fog.color.r, fog.color.g, fog.color.b );
-
-				if ( fog.isFog ) {
-
-					gl.uniform1f( uniforms.fogNear, fog.near );
-					gl.uniform1f( uniforms.fogFar, fog.far );
-
-					gl.uniform1i( uniforms.fogType, 1 );
-					oldFogType = 1;
-					sceneFogType = 1;
-
-				} else if ( fog.isFogExp2 ) {
-
-					gl.uniform1f( uniforms.fogDensity, fog.density );
-
-					gl.uniform1i( uniforms.fogType, 2 );
-					oldFogType = 2;
-					sceneFogType = 2;
-
-				}
-
-			} else {
-
-				gl.uniform1i( uniforms.fogType, 0 );
-				oldFogType = 0;
-				sceneFogType = 0;
-
-			}
-
-
-			// update positions and sort
-
-			for ( var i = 0, l = sprites.length; i < l; i ++ ) {
-
-				var sprite = sprites[ i ];
-
-				sprite.modelViewMatrix.multiplyMatrices( camera.matrixWorldInverse, sprite.matrixWorld );
-				sprite.z = - sprite.modelViewMatrix.elements[ 14 ];
-
-			}
-
-			sprites.sort( painterSortStable );
-
-			// render all sprites
-
-			var scale = [];
-			var center = [];
-
-			for ( var i = 0, l = sprites.length; i < l; i ++ ) {
-
-				var sprite = sprites[ i ];
-				var material = sprite.material;
-
-				if ( material.visible === false ) continue;
-
-				sprite.onBeforeRender( renderer, scene, camera, undefined, material, undefined );
-
-				gl.uniform1f( uniforms.alphaTest, material.alphaTest );
-				gl.uniformMatrix4fv( uniforms.modelViewMatrix, false, sprite.modelViewMatrix.elements );
-
-				sprite.matrixWorld.decompose( spritePosition, spriteRotation, spriteScale );
-
-				scale[ 0 ] = spriteScale.x;
-				scale[ 1 ] = spriteScale.y;
-
-				center[ 0 ] = sprite.center.x - 0.5;
-				center[ 1 ] = sprite.center.y - 0.5;
-
-				var fogType = 0;
-
-				if ( scene.fog && material.fog ) {
-
-					fogType = sceneFogType;
-
-				}
-
-				if ( oldFogType !== fogType ) {
-
-					gl.uniform1i( uniforms.fogType, fogType );
-					oldFogType = fogType;
-
-				}
-
-				if ( material.map !== null ) {
-
-					gl.uniform2f( uniforms.uvOffset, material.map.offset.x, material.map.offset.y );
-					gl.uniform2f( uniforms.uvScale, material.map.repeat.x, material.map.repeat.y );
-
-				} else {
-
-					gl.uniform2f( uniforms.uvOffset, 0, 0 );
-					gl.uniform2f( uniforms.uvScale, 1, 1 );
-
-				}
-
-				gl.uniform1f( uniforms.opacity, material.opacity );
-				gl.uniform3f( uniforms.color, material.color.r, material.color.g, material.color.b );
-
-				gl.uniform1f( uniforms.rotation, material.rotation );
-				gl.uniform2fv( uniforms.center, center );
-				gl.uniform2fv( uniforms.scale, scale );
-
-				state.setBlending( material.blending, material.blendEquation, material.blendSrc, material.blendDst, material.blendEquationAlpha, material.blendSrcAlpha, material.blendDstAlpha, material.premultipliedAlpha );
-				state.buffers.depth.setTest( material.depthTest );
-				state.buffers.depth.setMask( material.depthWrite );
-				state.buffers.color.setMask( material.colorWrite );
-
-				textures.setTexture2D( material.map || texture, 0 );
-
-				gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
-
-				sprite.onAfterRender( renderer, scene, camera, undefined, material, undefined );
-
-			}
-
-			// restore gl
-
-			state.enable( gl.CULL_FACE );
-
-			state.reset();
-
-		};
-
-		function createProgram() {
-
-			var program = gl.createProgram();
-
-			var vertexShader = gl.createShader( gl.VERTEX_SHADER );
-			var fragmentShader = gl.createShader( gl.FRAGMENT_SHADER );
-
-			gl.shaderSource( vertexShader, [
-
-				'precision ' + capabilities.precision + ' float;',
-
-				'#define SHADER_NAME ' + 'SpriteMaterial',
-
-				'uniform mat4 modelViewMatrix;',
-				'uniform mat4 projectionMatrix;',
-				'uniform float rotation;',
-				'uniform vec2 center;',
-				'uniform vec2 scale;',
-				'uniform vec2 uvOffset;',
-				'uniform vec2 uvScale;',
-
-				'attribute vec2 position;',
-				'attribute vec2 uv;',
-
-				'varying vec2 vUV;',
-				'varying float fogDepth;',
-
-				'void main() {',
-
-				'	vUV = uvOffset + uv * uvScale;',
-
-				'	vec2 alignedPosition = ( position - center ) * scale;',
-
-				'	vec2 rotatedPosition;',
-				'	rotatedPosition.x = cos( rotation ) * alignedPosition.x - sin( rotation ) * alignedPosition.y;',
-				'	rotatedPosition.y = sin( rotation ) * alignedPosition.x + cos( rotation ) * alignedPosition.y;',
-
-				'	vec4 mvPosition;',
-
-				'	mvPosition = modelViewMatrix * vec4( 0.0, 0.0, 0.0, 1.0 );',
-				'	mvPosition.xy += rotatedPosition;',
-
-				'	gl_Position = projectionMatrix * mvPosition;',
-
-				'	fogDepth = - mvPosition.z;',
-
-				'}'
-
-			].join( '\n' ) );
-
-			gl.shaderSource( fragmentShader, [
-
-				'precision ' + capabilities.precision + ' float;',
-
-				'#define SHADER_NAME ' + 'SpriteMaterial',
-
-				'uniform vec3 color;',
-				'uniform sampler2D map;',
-				'uniform float opacity;',
-
-				'uniform int fogType;',
-				'uniform vec3 fogColor;',
-				'uniform float fogDensity;',
-				'uniform float fogNear;',
-				'uniform float fogFar;',
-				'uniform float alphaTest;',
-
-				'varying vec2 vUV;',
-				'varying float fogDepth;',
-
-				'void main() {',
-
-				'	vec4 texture = texture2D( map, vUV );',
-
-				'	gl_FragColor = vec4( color * texture.xyz, texture.a * opacity );',
-
-				'	if ( gl_FragColor.a < alphaTest ) discard;',
-
-				'	if ( fogType > 0 ) {',
-
-				'		float fogFactor = 0.0;',
-
-				'		if ( fogType == 1 ) {',
-
-				'			fogFactor = smoothstep( fogNear, fogFar, fogDepth );',
-
-				'		} else {',
-
-				'			const float LOG2 = 1.442695;',
-				'			fogFactor = exp2( - fogDensity * fogDensity * fogDepth * fogDepth * LOG2 );',
-				'			fogFactor = 1.0 - clamp( fogFactor, 0.0, 1.0 );',
-
-				'		}',
-
-				'		gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );',
-
-				'	}',
-
-				'}'
-
-			].join( '\n' ) );
-
-			gl.compileShader( vertexShader );
-			gl.compileShader( fragmentShader );
-
-			gl.attachShader( program, vertexShader );
-			gl.attachShader( program, fragmentShader );
-
-			gl.linkProgram( program );
-
-			return program;
-
-		}
-
-		function painterSortStable( a, b ) {
-
-			if ( a.renderOrder !== b.renderOrder ) {
-
-				return a.renderOrder - b.renderOrder;
-
-			} else if ( a.z !== b.z ) {
-
-				return b.z - a.z;
-
-			} else {
-
-				return b.id - a.id;
 
 			}
 
@@ -19531,7 +20180,26 @@
 
 			try {
 
+				// console.log('texImage2D', arguments);
+
 				gl.texImage2D.apply( gl, arguments );
+
+
+				 // const level = 0;
+			  // const internalFormat = gl.LUMINANCE;
+			  // const width = 3;
+			  // const height = 2;
+			  // const border = 0;
+			  // const format = gl.LUMINANCE;
+			  // const type = gl.UNSIGNED_BYTE;
+			  // const data = new Uint8Array([
+			  //   128,  64, 128,
+			  //     0, 192,   0,
+			  // ]);
+			  // const alignment = 1;
+			  // gl.pixelStorei(gl.UNPACK_ALIGNMENT, alignment);
+			  // gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border,
+			  //               format, type, data);
 
 			} catch ( error ) {
 
@@ -19696,7 +20364,7 @@
 
 		function makePowerOfTwo( image ) {
 
-			if ( image instanceof HTMLImageElement || image instanceof HTMLCanvasElement || image instanceof ImageBitmap ) {
+			if ( image instanceof HTMLImageElement || image instanceof HTMLCanvasElement || ( typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap ) ) {
 
 				if ( _canvas === undefined ) _canvas = document.createElementNS( 'http://www.w3.org/1999/xhtml', 'canvas' );
 
@@ -20663,501 +21331,7 @@
 
 	}
 
-	/**
-	 * @author mrdoob / http://mrdoob.com/
-	 * @author greggman / http://games.greggman.com/
-	 * @author zz85 / http://www.lab4games.net/zz85/blog
-	 * @author tschw
-	 */
-
-	function PerspectiveCamera( fov, aspect, near, far ) {
-
-		Camera.call( this );
-
-		this.type = 'PerspectiveCamera';
-
-		this.fov = fov !== undefined ? fov : 50;
-		this.zoom = 1;
-
-		this.near = near !== undefined ? near : 0.1;
-		this.far = far !== undefined ? far : 2000;
-		this.focus = 10;
-
-		this.aspect = aspect !== undefined ? aspect : 1;
-		this.view = null;
-
-		this.filmGauge = 35;	// width of the film (default in millimeters)
-		this.filmOffset = 0;	// horizontal film offset (same unit as gauge)
-
-		this.updateProjectionMatrix();
-
-	}
-
-	PerspectiveCamera.prototype = Object.assign( Object.create( Camera.prototype ), {
-
-		constructor: PerspectiveCamera,
-
-		isPerspectiveCamera: true,
-
-		copy: function ( source, recursive ) {
-
-			Camera.prototype.copy.call( this, source, recursive );
-
-			this.fov = source.fov;
-			this.zoom = source.zoom;
-
-			this.near = source.near;
-			this.far = source.far;
-			this.focus = source.focus;
-
-			this.aspect = source.aspect;
-			this.view = source.view === null ? null : Object.assign( {}, source.view );
-
-			this.filmGauge = source.filmGauge;
-			this.filmOffset = source.filmOffset;
-
-			return this;
-
-		},
-
-		/**
-		 * Sets the FOV by focal length in respect to the current .filmGauge.
-		 *
-		 * The default film gauge is 35, so that the focal length can be specified for
-		 * a 35mm (full frame) camera.
-		 *
-		 * Values for focal length and film gauge must have the same unit.
-		 */
-		setFocalLength: function ( focalLength ) {
-
-			// see http://www.bobatkins.com/photography/technical/field_of_view.html
-			var vExtentSlope = 0.5 * this.getFilmHeight() / focalLength;
-
-			this.fov = _Math.RAD2DEG * 2 * Math.atan( vExtentSlope );
-			this.updateProjectionMatrix();
-
-		},
-
-		/**
-		 * Calculates the focal length from the current .fov and .filmGauge.
-		 */
-		getFocalLength: function () {
-
-			var vExtentSlope = Math.tan( _Math.DEG2RAD * 0.5 * this.fov );
-
-			return 0.5 * this.getFilmHeight() / vExtentSlope;
-
-		},
-
-		getEffectiveFOV: function () {
-
-			return _Math.RAD2DEG * 2 * Math.atan(
-				Math.tan( _Math.DEG2RAD * 0.5 * this.fov ) / this.zoom );
-
-		},
-
-		getFilmWidth: function () {
-
-			// film not completely covered in portrait format (aspect < 1)
-			return this.filmGauge * Math.min( this.aspect, 1 );
-
-		},
-
-		getFilmHeight: function () {
-
-			// film not completely covered in landscape format (aspect > 1)
-			return this.filmGauge / Math.max( this.aspect, 1 );
-
-		},
-
-		/**
-		 * Sets an offset in a larger frustum. This is useful for multi-window or
-		 * multi-monitor/multi-machine setups.
-		 *
-		 * For example, if you have 3x2 monitors and each monitor is 1920x1080 and
-		 * the monitors are in grid like this
-		 *
-		 *   +---+---+---+
-		 *   | A | B | C |
-		 *   +---+---+---+
-		 *   | D | E | F |
-		 *   +---+---+---+
-		 *
-		 * then for each monitor you would call it like this
-		 *
-		 *   var w = 1920;
-		 *   var h = 1080;
-		 *   var fullWidth = w * 3;
-		 *   var fullHeight = h * 2;
-		 *
-		 *   --A--
-		 *   camera.setOffset( fullWidth, fullHeight, w * 0, h * 0, w, h );
-		 *   --B--
-		 *   camera.setOffset( fullWidth, fullHeight, w * 1, h * 0, w, h );
-		 *   --C--
-		 *   camera.setOffset( fullWidth, fullHeight, w * 2, h * 0, w, h );
-		 *   --D--
-		 *   camera.setOffset( fullWidth, fullHeight, w * 0, h * 1, w, h );
-		 *   --E--
-		 *   camera.setOffset( fullWidth, fullHeight, w * 1, h * 1, w, h );
-		 *   --F--
-		 *   camera.setOffset( fullWidth, fullHeight, w * 2, h * 1, w, h );
-		 *
-		 *   Note there is no reason monitors have to be the same size or in a grid.
-		 */
-		setViewOffset: function ( fullWidth, fullHeight, x, y, width, height ) {
-
-			this.aspect = fullWidth / fullHeight;
-
-			if ( this.view === null ) {
-
-				this.view = {
-					enabled: true,
-					fullWidth: 1,
-					fullHeight: 1,
-					offsetX: 0,
-					offsetY: 0,
-					width: 1,
-					height: 1
-				};
-
-			}
-
-			this.view.enabled = true;
-			this.view.fullWidth = fullWidth;
-			this.view.fullHeight = fullHeight;
-			this.view.offsetX = x;
-			this.view.offsetY = y;
-			this.view.width = width;
-			this.view.height = height;
-
-			this.updateProjectionMatrix();
-
-		},
-
-		clearViewOffset: function () {
-
-			if ( this.view !== null ) {
-
-				this.view.enabled = false;
-
-			}
-
-			this.updateProjectionMatrix();
-
-		},
-
-		updateProjectionMatrix: function () {
-
-			var near = this.near,
-				top = near * Math.tan(
-					_Math.DEG2RAD * 0.5 * this.fov ) / this.zoom,
-				height = 2 * top,
-				width = this.aspect * height,
-				left = - 0.5 * width,
-				view = this.view;
-
-			if ( this.view !== null && this.view.enabled ) {
-
-				var fullWidth = view.fullWidth,
-					fullHeight = view.fullHeight;
-
-				left += view.offsetX * width / fullWidth;
-				top -= view.offsetY * height / fullHeight;
-				width *= view.width / fullWidth;
-				height *= view.height / fullHeight;
-
-			}
-
-			var skew = this.filmOffset;
-			if ( skew !== 0 ) left += near * skew / this.getFilmWidth();
-
-			this.projectionMatrix.makePerspective( left, left + width, top, top - height, near, this.far );
-
-		},
-
-		toJSON: function ( meta ) {
-
-			var data = Object3D.prototype.toJSON.call( this, meta );
-
-			data.object.fov = this.fov;
-			data.object.zoom = this.zoom;
-
-			data.object.near = this.near;
-			data.object.far = this.far;
-			data.object.focus = this.focus;
-
-			data.object.aspect = this.aspect;
-
-			if ( this.view !== null ) data.object.view = Object.assign( {}, this.view );
-
-			data.object.filmGauge = this.filmGauge;
-			data.object.filmOffset = this.filmOffset;
-
-			return data;
-
-		}
-
-	} );
-
-	/**
-	 * @author mrdoob / http://mrdoob.com/
-	 */
-
-	function ArrayCamera( array ) {
-
-		PerspectiveCamera.call( this );
-
-		this.cameras = array || [];
-
-	}
-
-	ArrayCamera.prototype = Object.assign( Object.create( PerspectiveCamera.prototype ), {
-
-		constructor: ArrayCamera,
-
-		isArrayCamera: true
-
-	} );
-
-	/**
-	 * @author mrdoob / http://mrdoob.com/
-	 */
-
-	function WebVRManager( renderer ) {
-
-		var scope = this;
-
-		var device = null;
-		var frameData = null;
-
-		var poseTarget = null;
-
-		var standingMatrix = new Matrix4();
-		var standingMatrixInverse = new Matrix4();
-
-		if ( typeof window !== 'undefined' && 'VRFrameData' in window ) {
-
-			frameData = new window.VRFrameData();
-			window.addEventListener( 'vrdisplaypresentchange', onVRDisplayPresentChange, false );
-
-		}
-
-		var matrixWorldInverse = new Matrix4();
-		var tempQuaternion = new Quaternion();
-		var tempPosition = new Vector3();
-
-		var cameraL = new PerspectiveCamera();
-		cameraL.bounds = new Vector4( 0.0, 0.0, 0.5, 1.0 );
-		cameraL.layers.enable( 1 );
-
-		var cameraR = new PerspectiveCamera();
-		cameraR.bounds = new Vector4( 0.5, 0.0, 0.5, 1.0 );
-		cameraR.layers.enable( 2 );
-
-		var cameraVR = new ArrayCamera( [ cameraL, cameraR ] );
-		cameraVR.layers.enable( 1 );
-		cameraVR.layers.enable( 2 );
-
-		//
-
-		function isPresenting() {
-
-			return device !== null && device.isPresenting === true;
-
-		}
-
-		var currentSize, currentPixelRatio;
-
-		function onVRDisplayPresentChange() {
-
-			if ( isPresenting() ) {
-
-				var eyeParameters = device.getEyeParameters( 'left' );
-				var renderWidth = eyeParameters.renderWidth;
-				var renderHeight = eyeParameters.renderHeight;
-
-				currentPixelRatio = renderer.getPixelRatio();
-				currentSize = renderer.getSize();
-
-				renderer.setDrawingBufferSize( renderWidth * 2, renderHeight, 1 );
-
-			} else if ( scope.enabled ) {
-
-				renderer.setDrawingBufferSize( currentSize.width, currentSize.height, currentPixelRatio );
-
-			}
-
-		}
-
-		//
-
-		this.enabled = false;
-		this.userHeight = 1.6;
-
-		this.getDevice = function () {
-
-			return device;
-
-		};
-
-		this.setDevice = function ( value ) {
-
-			if ( value !== undefined ) device = value;
-
-		};
-
-		this.setPoseTarget = function ( object ) {
-
-			if ( object !== undefined ) poseTarget = object;
-
-		};
-
-		this.getCamera = function ( camera ) {
-
-			if ( device === null ) return camera;
-
-			device.depthNear = camera.near;
-			device.depthFar = camera.far;
-
-			device.getFrameData( frameData );
-
-			//
-
-			var stageParameters = device.stageParameters;
-
-			if ( stageParameters ) {
-
-				standingMatrix.fromArray( stageParameters.sittingToStandingTransform );
-
-			} else {
-
-				standingMatrix.makeTranslation( 0, scope.userHeight, 0 );
-
-			}
-
-
-			var pose = frameData.pose;
-			var poseObject = poseTarget !== null ? poseTarget : camera;
-
-			// We want to manipulate poseObject by its position and quaternion components since users may rely on them.
-			poseObject.matrix.copy( standingMatrix );
-			poseObject.matrix.decompose( poseObject.position, poseObject.quaternion, poseObject.scale );
-
-			if ( pose.orientation !== null ) {
-
-				tempQuaternion.fromArray( pose.orientation );
-				poseObject.quaternion.multiply( tempQuaternion );
-
-			}
-
-			if ( pose.position !== null ) {
-
-				tempQuaternion.setFromRotationMatrix( standingMatrix );
-				tempPosition.fromArray( pose.position );
-				tempPosition.applyQuaternion( tempQuaternion );
-				poseObject.position.add( tempPosition );
-
-			}
-
-			poseObject.updateMatrixWorld();
-
-			if ( device.isPresenting === false ) return camera;
-
-			//
-
-			cameraL.near = camera.near;
-			cameraR.near = camera.near;
-
-			cameraL.far = camera.far;
-			cameraR.far = camera.far;
-
-			cameraVR.matrixWorld.copy( camera.matrixWorld );
-			cameraVR.matrixWorldInverse.copy( camera.matrixWorldInverse );
-
-			cameraL.matrixWorldInverse.fromArray( frameData.leftViewMatrix );
-			cameraR.matrixWorldInverse.fromArray( frameData.rightViewMatrix );
-
-			// TODO (mrdoob) Double check this code
-
-			standingMatrixInverse.getInverse( standingMatrix );
-
-			cameraL.matrixWorldInverse.multiply( standingMatrixInverse );
-			cameraR.matrixWorldInverse.multiply( standingMatrixInverse );
-
-			var parent = poseObject.parent;
-
-			if ( parent !== null ) {
-
-				matrixWorldInverse.getInverse( parent.matrixWorld );
-
-				cameraL.matrixWorldInverse.multiply( matrixWorldInverse );
-				cameraR.matrixWorldInverse.multiply( matrixWorldInverse );
-
-			}
-
-			// envMap and Mirror needs camera.matrixWorld
-
-			cameraL.matrixWorld.getInverse( cameraL.matrixWorldInverse );
-			cameraR.matrixWorld.getInverse( cameraR.matrixWorldInverse );
-
-			cameraL.projectionMatrix.fromArray( frameData.leftProjectionMatrix );
-			cameraR.projectionMatrix.fromArray( frameData.rightProjectionMatrix );
-
-			// HACK (mrdoob)
-			// https://github.com/w3c/webvr/issues/203
-
-			cameraVR.projectionMatrix.copy( cameraL.projectionMatrix );
-
-			//
-
-			var layers = device.getLayers();
-
-			if ( layers.length ) {
-
-				var layer = layers[ 0 ];
-
-				if ( layer.leftBounds !== null && layer.leftBounds.length === 4 ) {
-
-					cameraL.bounds.fromArray( layer.leftBounds );
-
-				}
-
-				if ( layer.rightBounds !== null && layer.rightBounds.length === 4 ) {
-
-					cameraR.bounds.fromArray( layer.rightBounds );
-
-				}
-
-			}
-
-			return cameraVR;
-
-		};
-
-		this.getStandingMatrix = function () {
-
-			return standingMatrix;
-
-		};
-
-		this.submitFrame = function () {
-
-			if ( isPresenting() ) device.submitFrame();
-
-		};
-
-		this.dispose = function () {
-
-			if ( typeof window !== 'undefined' ) {
-
-				window.removeEventListener( 'vrdisplaypresentchange', onVRDisplayPresentChange );
-
-			}
-
-		};
-
-	}
+	// import { WebVRManager } from './webvr/WebVRManager.js';
 
 	/**
 	 * @author supereggbert / http://www.paulbrunt.co.uk/
@@ -21289,6 +21463,7 @@
 		// initialize
 
 		var _gl;
+		var _isWorker = self.document === undefined;
 
 		try {
 
@@ -21346,7 +21521,7 @@
 		var programCache, renderLists, renderStates;
 
 		var background, morphtargets, bufferRenderer, indexedBufferRenderer;
-		var spriteRenderer;
+		// var spriteRenderer;
 
 		var utils;
 
@@ -21386,7 +21561,7 @@
 			bufferRenderer = new WebGLBufferRenderer( _gl, extensions, info );
 			indexedBufferRenderer = new WebGLIndexedBufferRenderer( _gl, extensions, info );
 
-			spriteRenderer = new WebGLSpriteRenderer( _this, _gl, state, textures, capabilities );
+			// spriteRenderer = new WebGLSpriteRenderer( _this, _gl, state, textures, capabilities );
 
 			info.programs = programCache.programs;
 
@@ -21404,9 +21579,9 @@
 
 		// vr
 
-		var vr = new WebVRManager( _this );
+		// var vr = new WebVRManager( _this );
 
-		this.vr = vr;
+		// this.vr = vr;
 
 		// shadow map
 
@@ -21469,14 +21644,14 @@
 
 		this.setSize = function ( width, height, updateStyle ) {
 
-			var device = vr.getDevice();
+			// var device = vr.getDevice();
 
-			if ( device && device.isPresenting ) {
+			// if ( device && device.isPresenting ) {
 
-				console.warn( 'THREE.WebGLRenderer: Can\'t change size while VR device is presenting.' );
-				return;
+			// 	console.warn( 'THREE.WebGLRenderer: Can\'t change size while VR device is presenting.' );
+			// 	return;
 
-			}
+			// }
 
 			_width = width;
 			_height = height;
@@ -21618,10 +21793,6 @@
 			renderStates.dispose();
 			properties.dispose();
 			objects.dispose();
-
-			vr.dispose();
-
-			stopAnimation();
 
 		};
 
@@ -21832,7 +22003,11 @@
 
 			if ( index !== null ) {
 
-				attribute = attributes.get( index );
+				if(!(attribute = attributes.get( index ))) {
+					console.error('Error when trying to render object: ');
+					console.log(object);
+					return false;
+				}
 
 				renderer = indexedBufferRenderer;
 				renderer.setIndex( attribute );
@@ -21969,13 +22144,9 @@
 
 			var geometryAttributes = geometry.attributes;
 
-			var programAttributes = program.getAttributes();
-
 			var materialDefaultAttributeValues = material.defaultAttributeValues;
 
-			for ( var name in programAttributes ) {
-
-				var programAttribute = programAttributes[ name ];
+			program.getAttributesMap().forEach(function (programAttribute, name) {
 
 				if ( programAttribute >= 0 ) {
 
@@ -21990,7 +22161,7 @@
 
 						// TODO Attribute may not be available on context restore
 
-						if ( attribute === undefined ) continue;
+						if ( attribute === undefined ) return;
 
 						var buffer = attribute.buffer;
 						var type = attribute.type;
@@ -22075,7 +22246,7 @@
 
 				}
 
-			}
+			});
 
 			state.disableUnusedAttributes();
 
@@ -22130,57 +22301,7 @@
 
 		};
 
-		// Animation Loop
-
-		var isAnimating = false;
-		var onAnimationFrame = null;
-
-		function startAnimation() {
-
-			if ( isAnimating ) return;
-
-			requestAnimationLoopFrame();
-
-			isAnimating = true;
-
-		}
-
-		function stopAnimation() {
-
-			isAnimating = false;
-
-		}
-
-		function requestAnimationLoopFrame() {
-
-			var device = vr.getDevice();
-
-			if ( device && device.isPresenting ) {
-
-				device.requestAnimationFrame( animationLoop );
-
-			} else {
-
-				window.requestAnimationFrame( animationLoop );
-
-			}
-
-		}
-
-		function animationLoop( time ) {
-
-			if ( isAnimating === false ) return;
-
-			onAnimationFrame( time );
-
-			requestAnimationLoopFrame();
-
-		}
-
 		this.animate = function ( callback ) {
-
-			onAnimationFrame = callback;
-			onAnimationFrame !== null ? startAnimation() : stopAnimation();
 
 		};
 
@@ -22188,12 +22309,13 @@
 
 		this.render = function ( scene, camera, renderTarget, forceClear ) {
 
-			if ( ! ( camera && camera.isCamera ) ) {
+			// seems like an unnecessary step
+			// if ( ! ( camera && camera.isCamera ) ) {
 
-				console.error( 'THREE.WebGLRenderer.render: camera is not an instance of THREE.Camera.' );
-				return;
+			// 	console.error( 'THREE.WebGLRenderer.render: camera is not an instance of THREE.Camera.' );
+			// 	return;
 
-			}
+			// }
 
 			if ( _isContextLost ) return;
 
@@ -22205,26 +22327,26 @@
 
 			// update scene graph
 
-			if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
+			// if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
 
 			// update camera matrices and frustum
 
-			if ( camera.parent === null ) camera.updateMatrixWorld();
+			// if ( camera.parent === null ) camera.updateMatrixWorld();
 
-			if ( vr.enabled ) {
+			// if ( vr.enabled ) {
 
-				camera = vr.getCamera( camera );
+			// 	camera = vr.getCamera( camera );
 
-			}
+			// }
 
 			//
 
 			currentRenderState = renderStates.get( scene, camera );
 			currentRenderState.init();
 
-			scene.onBeforeRender( _this, scene, camera, renderTarget );
+			// scene.onBeforeRender( _this, scene, camera, renderTarget );
 
-			_projScreenMatrix.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
+			_projScreenMatrix.multiplyMatricesIncludingBottomRow( camera.projectionMatrix, camera.matrixWorldInverse );
 			_frustum.setFromMatrix( _projScreenMatrix );
 
 			_localClippingEnabled = this.localClippingEnabled;
@@ -22233,7 +22355,16 @@
 			currentRenderList = renderLists.get( scene, camera );
 			currentRenderList.init();
 
-			projectObject( scene, camera, _this.sortObjects );
+			// projectObject( scene, camera, _this.sortObjects );
+			var children = scene.children;
+			for ( var i = 0, l = children.length; i < l; i ++ ) {
+				projectObject( children[ i ], camera, _this.sortObjects, false );
+			}
+
+			// Objects which are hacked into scene will be skipped in above loop i.e. if they are children
+			for(var j = 0, jl = scene.hackedIntoScene.length; j < jl; j++){
+				projectObject( scene.hackedIntoScene[j], camera, _this.sortObjects, true );
+			}
 
 			if ( _this.sortObjects === true ) {
 
@@ -22267,7 +22398,7 @@
 
 			//
 
-			background.render( currentRenderList, scene, camera, forceClear );
+			// background.render( currentRenderList, scene, camera, forceClear );
 
 			// render scene
 
@@ -22295,9 +22426,9 @@
 
 			// custom renderers
 
-			var spritesArray = currentRenderState.state.spritesArray;
+			// var spritesArray = currentRenderState.state.spritesArray;
 
-			spriteRenderer.render( spritesArray, scene, camera );
+			// spriteRenderer.render( spritesArray, scene, camera );
 
 			// Generate mipmap if we're using any kind of mipmap filtering
 
@@ -22313,16 +22444,20 @@
 			state.buffers.depth.setMask( true );
 			state.buffers.color.setMask( true );
 
+			// _gl.finish();
+
 			state.setPolygonOffset( false );
 
-			scene.onAfterRender( _this, scene, camera );
+			// scene.onAfterRender( _this, scene, camera );
 
-			if ( vr.enabled ) {
+			// if ( vr.enabled ) {
 
-				vr.submitFrame();
+			// 	vr.submitFrame();
 
-			}
+			// }
 
+			// for workers only
+			_isWorker && _gl.commit();
 			// _gl.finish();
 
 			currentRenderList = null;
@@ -22337,17 +22472,17 @@
 
 		function isObjectViewable( object ) {
 
-			var geometry = object.geometry;
+		// 	var geometry = object.geometry;
 
-			if ( geometry.boundingSphere === null )
-				geometry.computeBoundingSphere();
+		// 	if ( geometry.boundingSphere === null )
+		// 		geometry.computeBoundingSphere();
 
-			_sphere.copy( geometry.boundingSphere ).
-			applyMatrix4( object.matrixWorld );
+		//	_sphere.copy( geometry.boundingSphere ).
+		//	applyMatrix4( object.matrixWorld );
 
-			return isSphereViewable( _sphere );
+		// 	return isSphereViewable( _sphere );
 
-		}
+		// }
 
 		function isSpriteViewable( sprite ) {
 
@@ -22385,9 +22520,9 @@
 		}
 		*/
 
-		function projectObject( object, camera, sortObjects ) {
+		function projectObject( object, camera, sortObjects, hackedIntoScene ) {
 
-			if ( object.visible === false ) return;
+			if ( object.visible === false || (!hackedIntoScene && object.hackedIntoScene) ) return;
 
 			var visible = object.layers.test( camera.layers );
 
@@ -22405,7 +22540,9 @@
 
 				} else if ( object.isSprite ) {
 
-					if ( ! object.frustumCulled || _frustum.intersectsSprite( object ) ) {
+					if ( ! object.frustumCulled || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
+
+						object.inFrustum = true;
 
 						currentRenderState.pushSprite( object );
 
@@ -22430,7 +22567,10 @@
 
 					}
 
-					if ( ! object.frustumCulled || _frustum.intersectsObject( object ) ) {
+					// checking if object's parent is in frustum only is evil...
+					if ( ! object.frustumCulled || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
+
+						object.inFrustum = true;
 
 						if ( sortObjects ) {
 
@@ -22459,7 +22599,7 @@
 
 							}
 
-						} else if ( material.visible ) {
+						} else if ( material.visible && material.opacity !== 0 ) {
 
 							currentRenderList.push( object, geometry, material, _vector3.z, null );
 
@@ -22469,6 +22609,13 @@
 
 				}
 
+			}
+
+			object.updated = false;
+
+			// only continue with children if object is visible in scene or this is Scene(not in frustum by default)
+			if( !object.inFrustum && object.type !== 'Object3D' ) { // and containers
+				return;
 			}
 
 			var children = object.children;
@@ -24123,6 +24270,9 @@
 
 		this.bones = bones.slice( 0 );
 		this.boneMatrices = new Float32Array( this.bones.length * 16 );
+		for (var i = 15; i < this.boneMatrices.length; i += 16) {
+			this.boneMatrices[i] = 1;
+		}
 
 		// use the supplied bone inverses or calculate the inverses
 
@@ -24500,6 +24650,21 @@
 		clone: function () {
 
 			return new this.constructor( this.geometry, this.material ).copy( this );
+
+		},
+
+		raycast: function raycast( raycaster, intersects ) {
+
+			if ( this.geometry.realPositionAttribute === null ) {
+
+				this.geometry.expensiveUpdateVertices( this );
+
+			}
+
+			var tmpPosition = this.geometry.attributes.position.array;
+			this.geometry.attributes.position.array = this.geometry.realPositionAttribute.array;
+			Mesh.prototype.raycast.call( this, raycaster, intersects );
+			this.geometry.attributes.position.array = tmpPosition;
 
 		}
 
@@ -25168,6 +25333,21 @@
 	CompressedTexture.prototype.constructor = CompressedTexture;
 
 	CompressedTexture.prototype.isCompressedTexture = true;
+
+	/**
+	 * @author mrdoob / http://mrdoob.com/
+	 */
+
+	function CanvasTexture( canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy ) {
+
+		Texture.call( this, canvas, mapping, wrapS, wrapT, magFilter, minFilter, format, type, anisotropy );
+
+		this.needsUpdate = true;
+
+	}
+
+	CanvasTexture.prototype = Object.create( Texture.prototype );
+	CanvasTexture.prototype.constructor = CanvasTexture;
 
 	/**
 	 * @author Matt DesLauriers / @mattdesl
@@ -27638,6 +27818,7 @@
 			var amount = options.amount !== undefined ? options.amount : 100;
 
 			var bevelEnabled = options.bevelEnabled !== undefined ? options.bevelEnabled : true;
+			var bevelSide = options.bevelSide !== undefined ? options.bevelSide : DoubleSide;
 			var bevelThickness = options.bevelThickness !== undefined ? options.bevelThickness : 6;
 			var bevelSize = options.bevelSize !== undefined ? options.bevelSize : bevelThickness - 2;
 			var bevelSegments = options.bevelSegments !== undefined ? options.bevelSegments : 3;
@@ -27908,77 +28089,52 @@
 
 
 			// Loop bevelSegments, 1 for the front, 1 for the back
+			if ( bevelSide === FrontSide || bevelSide === DoubleSide ) {
 
-			for ( b = 0; b < bevelSegments; b ++ ) {
+				for ( b = 0; b < bevelSegments; b ++ ) {
 
-				//for ( b = bevelSegments; b > 0; b -- ) {
+					//for ( b = bevelSegments; b > 0; b -- ) {
 
-				t = b / bevelSegments;
-				z = bevelThickness * Math.cos( t * Math.PI / 2 );
-				bs = bevelSize * Math.sin( t * Math.PI / 2 );
+					t = b / bevelSegments;
+					z = bevelThickness * Math.cos( t * Math.PI / 2 );
+					bs = bevelSize * Math.sin( t * Math.PI / 2 );
 
-				// contract shape
+					// contract shape
 
-				for ( i = 0, il = contour.length; i < il; i ++ ) {
+					for ( i = 0, il = contour.length; i < il; i ++ ) {
 
-					vert = scalePt2( contour[ i ], contourMovements[ i ], bs );
-
-					v( vert.x, vert.y, - z );
-
-				}
-
-				// expand holes
-
-				for ( h = 0, hl = holes.length; h < hl; h ++ ) {
-
-					ahole = holes[ h ];
-					oneHoleMovements = holesMovements[ h ];
-
-					for ( i = 0, il = ahole.length; i < il; i ++ ) {
-
-						vert = scalePt2( ahole[ i ], oneHoleMovements[ i ], bs );
+						vert = scalePt2( contour[ i ], contourMovements[ i ], bs );
 
 						v( vert.x, vert.y, - z );
 
 					}
 
-				}
+					// expand holes
 
-			}
+					for ( h = 0, hl = holes.length; h < hl; h ++ ) {
 
-			bs = bevelSize;
+						ahole = holes[ h ];
+						oneHoleMovements = holesMovements[ h ];
 
-			// Back facing vertices
+						for ( i = 0, il = ahole.length; i < il; i ++ ) {
 
-			for ( i = 0; i < vlen; i ++ ) {
+							vert = scalePt2( ahole[ i ], oneHoleMovements[ i ], bs );
 
-				vert = bevelEnabled ? scalePt2( vertices[ i ], verticesMovements[ i ], bs ) : vertices[ i ];
+							v( vert.x, vert.y, - z );
 
-				if ( ! extrudeByPath ) {
+						}
 
-					v( vert.x, vert.y, 0 );
-
-				} else {
-
-					// v( vert.x, vert.y + extrudePts[ 0 ].y, extrudePts[ 0 ].x );
-
-					normal.copy( splineTube.normals[ 0 ] ).multiplyScalar( vert.x );
-					binormal.copy( splineTube.binormals[ 0 ] ).multiplyScalar( vert.y );
-
-					position2.copy( extrudePts[ 0 ] ).add( normal ).add( binormal );
-
-					v( position2.x, position2.y, position2.z );
+					}
 
 				}
 
+				bs = bevelSize;
+
 			}
 
-			// Add stepped vertices...
-			// Including front facing vertices
+			if ( bevelSide === BackSide || bevelSide === DoubleSide ) {
 
-			var s;
-
-			for ( s = 1; s <= steps; s ++ ) {
+				// Back facing vertices
 
 				for ( i = 0; i < vlen; i ++ ) {
 
@@ -27986,16 +28142,16 @@
 
 					if ( ! extrudeByPath ) {
 
-						v( vert.x, vert.y, amount / steps * s );
+						v( vert.x, vert.y, 0 );
 
 					} else {
 
-						// v( vert.x, vert.y + extrudePts[ s - 1 ].y, extrudePts[ s - 1 ].x );
+						// v( vert.x, vert.y + extrudePts[ 0 ].y, extrudePts[ 0 ].x );
 
-						normal.copy( splineTube.normals[ s ] ).multiplyScalar( vert.x );
-						binormal.copy( splineTube.binormals[ s ] ).multiplyScalar( vert.y );
+						normal.copy( splineTube.normals[ 0 ] ).multiplyScalar( vert.x );
+						binormal.copy( splineTube.binormals[ 0 ] ).multiplyScalar( vert.y );
 
-						position2.copy( extrudePts[ s ] ).add( normal ).add( binormal );
+						position2.copy( extrudePts[ 0 ] ).add( normal ).add( binormal );
 
 						v( position2.x, position2.y, position2.z );
 
@@ -28005,43 +28161,80 @@
 
 			}
 
+			// Add stepped vertices...
+			// Including front facing vertices
+			if ( bevelSide === FrontSide || bevelSide === DoubleSide ) {
 
-			// Add bevel segments planes
+				var s;
 
-			//for ( b = 1; b <= bevelSegments; b ++ ) {
-			for ( b = bevelSegments - 1; b >= 0; b -- ) {
+				for ( s = 1; s <= steps; s ++ ) {
 
-				t = b / bevelSegments;
-				z = bevelThickness * Math.cos( t * Math.PI / 2 );
-				bs = bevelSize * Math.sin( t * Math.PI / 2 );
+					for ( i = 0; i < vlen; i ++ ) {
 
-				// contract shape
-
-				for ( i = 0, il = contour.length; i < il; i ++ ) {
-
-					vert = scalePt2( contour[ i ], contourMovements[ i ], bs );
-					v( vert.x, vert.y, amount + z );
-
-				}
-
-				// expand holes
-
-				for ( h = 0, hl = holes.length; h < hl; h ++ ) {
-
-					ahole = holes[ h ];
-					oneHoleMovements = holesMovements[ h ];
-
-					for ( i = 0, il = ahole.length; i < il; i ++ ) {
-
-						vert = scalePt2( ahole[ i ], oneHoleMovements[ i ], bs );
+						vert = bevelEnabled ? scalePt2( vertices[ i ], verticesMovements[ i ], bs ) : vertices[ i ];
 
 						if ( ! extrudeByPath ) {
 
-							v( vert.x, vert.y, amount + z );
+							v( vert.x, vert.y, amount / steps * s );
 
 						} else {
 
-							v( vert.x, vert.y + extrudePts[ steps - 1 ].y, extrudePts[ steps - 1 ].x + z );
+							// v( vert.x, vert.y + extrudePts[ s - 1 ].y, extrudePts[ s - 1 ].x );
+
+							normal.copy( splineTube.normals[ s ] ).multiplyScalar( vert.x );
+							binormal.copy( splineTube.binormals[ s ] ).multiplyScalar( vert.y );
+
+							position2.copy( extrudePts[ s ] ).add( normal ).add( binormal );
+
+							v( position2.x, position2.y, position2.z );
+
+						}
+
+					}
+
+				}
+
+			}
+
+
+			// Add bevel segments planes - back
+			if ( bevelSide === BackSide || bevelSide === DoubleSide ) {
+
+				for ( b = bevelSegments - 1; b >= 0; b -- ) {
+
+					t = b / bevelSegments;
+					z = bevelThickness * Math.cos( t * Math.PI / 2 );
+					bs = bevelSize * Math.sin( t * Math.PI / 2 );
+
+					// contract shape
+
+					for ( i = 0, il = contour.length; i < il; i ++ ) {
+
+						vert = scalePt2( contour[ i ], contourMovements[ i ], bs );
+						v( vert.x, vert.y, amount + z );
+
+					}
+
+					// expand holes
+
+					for ( h = 0, hl = holes.length; h < hl; h ++ ) {
+
+						ahole = holes[ h ];
+						oneHoleMovements = holesMovements[ h ];
+
+						for ( i = 0, il = ahole.length; i < il; i ++ ) {
+
+							vert = scalePt2( ahole[ i ], oneHoleMovements[ i ], bs );
+
+							if ( ! extrudeByPath ) {
+
+								v( vert.x, vert.y, amount + z );
+
+							} else {
+
+								v( vert.x, vert.y + extrudePts[ steps - 1 ].y, extrudePts[ steps - 1 ].x + z );
+
+							}
 
 						}
 
@@ -28074,43 +28267,56 @@
 					var offset = vlen * layer;
 
 					// Bottom faces
+					if ( bevelSide === FrontSide || bevelSide === DoubleSide ) {
 
-					for ( i = 0; i < flen; i ++ ) {
+						for ( i = 0; i < flen; i ++ ) {
 
-						face = faces[ i ];
-						f3( face[ 2 ] + offset, face[ 1 ] + offset, face[ 0 ] + offset );
+							face = faces[ i ];
+							f3( face[ 2 ] + offset, face[ 1 ] + offset, face[ 0 ] + offset );
+
+						}
+
+						layer = steps + bevelSegments * ( bevelSide === DoubleSide ? 2 : 1 );
+						offset = vlen * layer;
 
 					}
 
-					layer = steps + bevelSegments * 2;
-					offset = vlen * layer;
-
 					// Top faces
+					if ( bevelSide === BackSide || bevelSide === DoubleSide ) {
 
-					for ( i = 0; i < flen; i ++ ) {
+						for ( i = 0; i < flen; i ++ ) {
 
-						face = faces[ i ];
-						f3( face[ 0 ] + offset, face[ 1 ] + offset, face[ 2 ] + offset );
+							face = faces[ i ];
+							f3( face[ 0 ] + offset, face[ 1 ] + offset, face[ 2 ] + offset );
+
+						}
 
 					}
 
 				} else {
 
 					// Bottom faces
+					if ( bevelSide === FrontSide || bevelSide === DoubleSide ) {
 
-					for ( i = 0; i < flen; i ++ ) {
+						for ( i = 0; i < flen; i ++ ) {
 
-						face = faces[ i ];
-						f3( face[ 2 ], face[ 1 ], face[ 0 ] );
+							face = faces[ i ];
+							f3( face[ 2 ], face[ 1 ], face[ 0 ] );
+
+						}
 
 					}
 
 					// Top faces
 
-					for ( i = 0; i < flen; i ++ ) {
+					if ( bevelSide === BackSide || bevelSide === DoubleSide ) {
 
-						face = faces[ i ];
-						f3( face[ 0 ] + vlen * steps, face[ 1 ] + vlen * steps, face[ 2 ] + vlen * steps );
+						for ( i = 0; i < flen; i ++ ) {
+
+							face = faces[ i ];
+							f3( face[ 0 ] + vlen * steps, face[ 1 ] + vlen * steps, face[ 2 ] + vlen * steps );
+
+						}
 
 					}
 
@@ -28156,10 +28362,8 @@
 					k = i - 1;
 					if ( k < 0 ) k = contour.length - 1;
 
-					//console.log('b', i,j, i-1, k,vertices.length);
-
 					var s = 0,
-						sl = steps + bevelSegments * 2;
+						sl = steps + bevelSegments * ( bevelSide === DoubleSide ? 2 : 1 );
 
 					for ( s = 0; s < sl; s ++ ) {
 
@@ -29644,7 +29848,7 @@
 
 
 
-	var Geometries = Object.freeze({
+	var Geometries = /*#__PURE__*/Object.freeze({
 		WireframeGeometry: WireframeGeometry,
 		ParametricGeometry: ParametricGeometry,
 		ParametricBufferGeometry: ParametricBufferGeometry,
@@ -30414,7 +30618,7 @@
 
 
 
-	var Materials = Object.freeze({
+	var Materials = /*#__PURE__*/Object.freeze({
 		ShadowMaterial: ShadowMaterial,
 		SpriteMaterial: SpriteMaterial,
 		RawShaderMaterial: RawShaderMaterial,
@@ -30490,6 +30694,10 @@
 		var itemsLoaded = 0;
 		var itemsTotal = 0;
 		var urlModifier = undefined;
+		var handlers = [];
+
+		// Refer to #5689 for the reason why we don't set .onStart
+		// in the constructor
 
 		this.onStart = undefined;
 		this.onLoad = onLoad;
@@ -30563,7 +30771,49 @@
 		this.setURLModifier = function ( transform ) {
 
 			urlModifier = transform;
+
 			return this;
+
+		};
+
+		this.addHandler = function ( regex, loader ) {
+
+			handlers.push( regex, loader );
+
+			return this;
+
+		};
+
+		this.removeHandler = function ( regex ) {
+
+			var index = handlers.indexOf( regex );
+
+			if ( index !== - 1 ) {
+
+				handlers.splice( index, 2 );
+
+			}
+
+			return this;
+
+		};
+
+		this.getHandler = function ( file ) {
+
+			for ( var i = 0, l = handlers.length; i < l; i += 2 ) {
+
+				var regex = handlers[ i ];
+				var loader = handlers[ i + 1 ];
+
+				if ( regex.test( file ) ) {
+
+					return loader;
+
+				}
+
+			}
+
+			return null;
 
 		};
 
@@ -30574,8 +30824,6 @@
 	/**
 	 * @author mrdoob / http://mrdoob.com/
 	 */
-
-	var loading = {};
 
 	function FileLoader( manager ) {
 
@@ -30590,8 +30838,6 @@
 			if ( url === undefined ) url = '';
 
 			if ( this.path !== undefined ) url = this.path + url;
-
-			url = this.manager.resolveURL( url );
 
 			var scope = this;
 
@@ -30610,22 +30856,6 @@
 				}, 0 );
 
 				return cached;
-
-			}
-
-			// Check if request is duplicate
-
-			if ( loading[ url ] !== undefined ) {
-
-				loading[ url ].push( {
-
-					onLoad: onLoad,
-					onProgress: onProgress,
-					onError: onError
-
-				} );
-
-				return;
 
 			}
 
@@ -30654,7 +30884,9 @@
 						case 'arraybuffer':
 						case 'blob':
 
-							var view = new Uint8Array( data.length );
+						 	response = new ArrayBuffer( data.length );
+
+							var view = new Uint8Array( response );
 
 							for ( var i = 0; i < data.length; i ++ ) {
 
@@ -30664,11 +30896,7 @@
 
 							if ( responseType === 'blob' ) {
 
-								response = new Blob( [ view.buffer ], { type: mimeType } );
-
-							} else {
-
-								response = view.buffer;
+								response = new Blob( [ response ], { type: mimeType } );
 
 							}
 
@@ -30695,7 +30923,7 @@
 
 					}
 
-					// Wait for next browser tick like standard XMLHttpRequest event dispatching does
+					// Wait for next browser tick
 					window.setTimeout( function () {
 
 						if ( onLoad ) onLoad( response );
@@ -30706,12 +30934,11 @@
 
 				} catch ( error ) {
 
-					// Wait for next browser tick like standard XMLHttpRequest event dispatching does
+					// Wait for next browser tick
 					window.setTimeout( function () {
 
 						if ( onError ) onError( error );
 
-						scope.manager.itemEnd( url );
 						scope.manager.itemError( url );
 
 					}, 0 );
@@ -30720,40 +30947,18 @@
 
 			} else {
 
-				// Initialise array for duplicate requests
-
-				loading[ url ] = [];
-
-				loading[ url ].push( {
-
-					onLoad: onLoad,
-					onProgress: onProgress,
-					onError: onError
-
-				} );
-
 				var request = new XMLHttpRequest();
-
 				request.open( 'GET', url, true );
 
 				request.addEventListener( 'load', function ( event ) {
 
-					var response = this.response;
+					var response = event.target.response;
 
 					Cache.add( url, response );
 
-					var callbacks = loading[ url ];
-
-					delete loading[ url ];
-
 					if ( this.status === 200 ) {
 
-						for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
-
-							var callback = callbacks[ i ];
-							if ( callback.onLoad ) callback.onLoad( response );
-
-						}
+						if ( onLoad ) onLoad( response );
 
 						scope.manager.itemEnd( url );
 
@@ -30764,58 +30969,34 @@
 
 						console.warn( 'THREE.FileLoader: HTTP Status 0 received.' );
 
-						for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
-
-							var callback = callbacks[ i ];
-							if ( callback.onLoad ) callback.onLoad( response );
-
-						}
+						if ( onLoad ) onLoad( response );
 
 						scope.manager.itemEnd( url );
 
 					} else {
 
-						for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
+						if ( onError ) onError( event );
 
-							var callback = callbacks[ i ];
-							if ( callback.onError ) callback.onError( event );
-
-						}
-
-						scope.manager.itemEnd( url );
 						scope.manager.itemError( url );
 
 					}
 
 				}, false );
 
-				request.addEventListener( 'progress', function ( event ) {
+				if ( onProgress !== undefined ) {
 
-					var callbacks = loading[ url ];
+					request.addEventListener( 'progress', function ( event ) {
 
-					for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
+						onProgress( event );
 
-						var callback = callbacks[ i ];
-						if ( callback.onProgress ) callback.onProgress( event );
+					}, false );
 
-					}
-
-				}, false );
+				}
 
 				request.addEventListener( 'error', function ( event ) {
 
-					var callbacks = loading[ url ];
+					if ( onError ) onError( event );
 
-					delete loading[ url ];
-
-					for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
-
-						var callback = callbacks[ i ];
-						if ( callback.onError ) callback.onError( event );
-
-					}
-
-					scope.manager.itemEnd( url );
 					scope.manager.itemError( url );
 
 				}, false );
@@ -30824,12 +31005,6 @@
 				if ( this.withCredentials !== undefined ) request.withCredentials = this.withCredentials;
 
 				if ( request.overrideMimeType ) request.overrideMimeType( this.mimeType !== undefined ? this.mimeType : 'text/plain' );
-
-				for ( var header in this.requestHeader ) {
-
-					request.setRequestHeader( header, this.requestHeader[ header ] );
-
-				}
 
 				request.send( null );
 
@@ -30865,13 +31040,6 @@
 		setMimeType: function ( value ) {
 
 			this.mimeType = value;
-			return this;
-
-		},
-
-		setRequestHeader: function ( value ) {
-
-			this.requestHeader = value;
 			return this;
 
 		}
@@ -31104,6 +31272,7 @@
 	 * @author mrdoob / http://mrdoob.com/
 	 */
 
+
 	function ImageLoader( manager ) {
 
 		this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
@@ -31205,6 +31374,7 @@
 	 * @author mrdoob / http://mrdoob.com/
 	 */
 
+
 	function CubeTextureLoader( manager ) {
 
 		this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
@@ -31274,6 +31444,7 @@
 	/**
 	 * @author mrdoob / http://mrdoob.com/
 	 */
+
 
 	function TextureLoader( manager ) {
 
@@ -31995,9 +32166,7 @@
 	//
 
 	var tmp = new Vector3();
-	var px = new CubicPoly();
-	var py = new CubicPoly();
-	var pz = new CubicPoly();
+	var px = new CubicPoly(), py = new CubicPoly(), pz = new CubicPoly();
 
 	function CatmullRomCurve3( points, closed, curveType, tension ) {
 
@@ -32782,7 +32951,7 @@
 
 
 
-	var Curves = Object.freeze({
+	var Curves = /*#__PURE__*/Object.freeze({
 		ArcCurve: ArcCurve,
 		CatmullRomCurve3: CatmullRomCurve3,
 		CubicBezierCurve: CubicBezierCurve,
@@ -33479,6 +33648,251 @@
 			delete object.camera.matrix;
 
 			return object;
+
+		}
+
+	} );
+
+	/**
+	 * @author mrdoob / http://mrdoob.com/
+	 * @author greggman / http://games.greggman.com/
+	 * @author zz85 / http://www.lab4games.net/zz85/blog
+	 * @author tschw
+	 */
+
+	function PerspectiveCamera( fov, aspect, near, far ) {
+
+		Camera.call( this );
+
+		this.type = 'PerspectiveCamera';
+
+		this.fov = fov !== undefined ? fov : 50;
+		this.zoom = 1;
+
+		this.near = near !== undefined ? near : 0.1;
+		this.far = far !== undefined ? far : 2000;
+		this.focus = 10;
+
+		this.aspect = aspect !== undefined ? aspect : 1;
+		this.view = null;
+
+		this.filmGauge = 35;	// width of the film (default in millimeters)
+		this.filmOffset = 0;	// horizontal film offset (same unit as gauge)
+
+		this.updateProjectionMatrix();
+
+	}
+
+	PerspectiveCamera.prototype = Object.assign( Object.create( Camera.prototype ), {
+
+		constructor: PerspectiveCamera,
+
+		isPerspectiveCamera: true,
+
+		copy: function ( source, recursive ) {
+
+			Camera.prototype.copy.call( this, source, recursive );
+
+			this.fov = source.fov;
+			this.zoom = source.zoom;
+
+			this.near = source.near;
+			this.far = source.far;
+			this.focus = source.focus;
+
+			this.aspect = source.aspect;
+			this.view = source.view === null ? null : Object.assign( {}, source.view );
+
+			this.filmGauge = source.filmGauge;
+			this.filmOffset = source.filmOffset;
+
+			return this;
+
+		},
+
+		/**
+		 * Sets the FOV by focal length in respect to the current .filmGauge.
+		 *
+		 * The default film gauge is 35, so that the focal length can be specified for
+		 * a 35mm (full frame) camera.
+		 *
+		 * Values for focal length and film gauge must have the same unit.
+		 */
+		setFocalLength: function ( focalLength ) {
+
+			// see http://www.bobatkins.com/photography/technical/field_of_view.html
+			var vExtentSlope = 0.5 * this.getFilmHeight() / focalLength;
+
+			this.fov = _Math.RAD2DEG * 2 * Math.atan( vExtentSlope );
+			this.updateProjectionMatrix();
+
+		},
+
+		/**
+		 * Calculates the focal length from the current .fov and .filmGauge.
+		 */
+		getFocalLength: function () {
+
+			var vExtentSlope = Math.tan( _Math.DEG2RAD * 0.5 * this.fov );
+
+			return 0.5 * this.getFilmHeight() / vExtentSlope;
+
+		},
+
+		setFOV: function ( fov ) {
+
+			var vExtentSlope = Math.tan( _Math.DEG2RAD * 0.5 * fov );
+
+			this.setFocalLength( 0.5 * this.getFilmHeight() / vExtentSlope );
+
+		},
+
+		getEffectiveFOV: function () {
+
+			return _Math.RAD2DEG * 2 * Math.atan(
+				Math.tan( _Math.DEG2RAD * 0.5 * this.fov ) / this.zoom );
+
+		},
+
+		getFilmWidth: function () {
+
+			// film not completely covered in portrait format (aspect < 1)
+			return this.filmGauge * Math.min( this.aspect, 1 );
+
+		},
+
+		getFilmHeight: function () {
+
+			// film not completely covered in landscape format (aspect > 1)
+			return this.filmGauge / Math.max( this.aspect, 1 );
+
+		},
+
+		/**
+		 * Sets an offset in a larger frustum. This is useful for multi-window or
+		 * multi-monitor/multi-machine setups.
+		 *
+		 * For example, if you have 3x2 monitors and each monitor is 1920x1080 and
+		 * the monitors are in grid like this
+		 *
+		 *   +---+---+---+
+		 *   | A | B | C |
+		 *   +---+---+---+
+		 *   | D | E | F |
+		 *   +---+---+---+
+		 *
+		 * then for each monitor you would call it like this
+		 *
+		 *   var w = 1920;
+		 *   var h = 1080;
+		 *   var fullWidth = w * 3;
+		 *   var fullHeight = h * 2;
+		 *
+		 *   --A--
+		 *   camera.setOffset( fullWidth, fullHeight, w * 0, h * 0, w, h );
+		 *   --B--
+		 *   camera.setOffset( fullWidth, fullHeight, w * 1, h * 0, w, h );
+		 *   --C--
+		 *   camera.setOffset( fullWidth, fullHeight, w * 2, h * 0, w, h );
+		 *   --D--
+		 *   camera.setOffset( fullWidth, fullHeight, w * 0, h * 1, w, h );
+		 *   --E--
+		 *   camera.setOffset( fullWidth, fullHeight, w * 1, h * 1, w, h );
+		 *   --F--
+		 *   camera.setOffset( fullWidth, fullHeight, w * 2, h * 1, w, h );
+		 *
+		 *   Note there is no reason monitors have to be the same size or in a grid.
+		 */
+		setViewOffset: function ( fullWidth, fullHeight, x, y, width, height ) {
+
+			this.aspect = fullWidth / fullHeight;
+
+			if ( this.view === null ) {
+
+				this.view = {
+					enabled: true,
+					fullWidth: 1,
+					fullHeight: 1,
+					offsetX: 0,
+					offsetY: 0,
+					width: 1,
+					height: 1
+				};
+
+			}
+
+			this.view.enabled = true;
+			this.view.fullWidth = fullWidth;
+			this.view.fullHeight = fullHeight;
+			this.view.offsetX = x;
+			this.view.offsetY = y;
+			this.view.width = width;
+			this.view.height = height;
+
+			this.updateProjectionMatrix();
+
+		},
+
+		clearViewOffset: function () {
+
+			if ( this.view !== null ) {
+
+				this.view.enabled = false;
+
+			}
+
+			this.updateProjectionMatrix();
+
+		},
+
+		updateProjectionMatrix: function () {
+
+			var near = this.near,
+				top = near * Math.tan(
+					_Math.DEG2RAD * 0.5 * this.fov ) / this.zoom,
+				height = 2 * top,
+				width = this.aspect * height,
+				left = - 0.5 * width,
+				view = this.view;
+
+			if ( this.view !== null && this.view.enabled ) {
+
+				var fullWidth = view.fullWidth,
+					fullHeight = view.fullHeight;
+
+				left += view.offsetX * width / fullWidth;
+				top -= view.offsetY * height / fullHeight;
+				width *= view.width / fullWidth;
+				height *= view.height / fullHeight;
+
+			}
+
+			var skew = this.filmOffset;
+			if ( skew !== 0 ) left += near * skew / this.getFilmWidth();
+
+			this.projectionMatrix.makePerspective( left, left + width, top, top - height, near, this.far );
+
+		},
+
+		toJSON: function ( meta ) {
+
+			var data = Object3D.prototype.toJSON.call( this, meta );
+
+			data.object.fov = this.fov;
+			data.object.zoom = this.zoom;
+
+			data.object.near = this.near;
+			data.object.far = this.far;
+			data.object.focus = this.focus;
+
+			data.object.aspect = this.aspect;
+
+			if ( this.view !== null ) data.object.view = Object.assign( {}, this.view );
+
+			data.object.filmGauge = this.filmGauge;
+			data.object.filmOffset = this.filmOffset;
+
+			return data;
 
 		}
 
@@ -37523,6 +37937,7 @@
 	 * @author thespite / http://clicktorelease.com/
 	 */
 
+
 	function ImageBitmapLoader( manager ) {
 
 		if ( typeof createImageBitmap === 'undefined' ) {
@@ -37905,6 +38320,7 @@
 	 * @author zz85 / http://www.lab4games.net/zz85/blog
 	 * @author mrdoob / http://mrdoob.com/
 	 */
+
 
 	function Font( data ) {
 
@@ -38330,7 +38746,7 @@
 			renderTarget.activeCubeFace = 5;
 			renderer.render( scene, cameraNZ, renderTarget );
 
-			renderer.setRenderTarget( null );
+			// renderer.setRenderTarget( null );
 
 		};
 
@@ -38341,13 +38757,13 @@
 			for ( var i = 0; i < 6; i ++ ) {
 
 				renderTarget.activeCubeFace = i;
-				renderer.setRenderTarget( renderTarget );
+				// renderer.setRenderTarget( renderTarget );
 
 				renderer.clear( color, depth, stencil );
 
 			}
 
-			renderer.setRenderTarget( null );
+			// renderer.setRenderTarget( null );
 
 		};
 
@@ -38355,6 +38771,26 @@
 
 	CubeCamera.prototype = Object.create( Object3D.prototype );
 	CubeCamera.prototype.constructor = CubeCamera;
+
+	/**
+	 * @author mrdoob / http://mrdoob.com/
+	 */
+
+	function ArrayCamera( array ) {
+
+		PerspectiveCamera.call( this );
+
+		this.cameras = array || [];
+
+	}
+
+	ArrayCamera.prototype = Object.assign( Object.create( PerspectiveCamera.prototype ), {
+
+		constructor: ArrayCamera,
+
+		isArrayCamera: true
+
+	} );
 
 	/**
 	 * @author mrdoob / http://mrdoob.com/
@@ -38531,6 +38967,13 @@
 
 		},
 
+		copy: function (threeAudio) {
+
+			this.buffer = threeAudio.buffer;
+			return this;
+
+		},
+
 		setBuffer: function ( audioBuffer ) {
 
 			this.buffer = audioBuffer;
@@ -38544,19 +38987,19 @@
 
 		play: function () {
 
-			if ( this.isPlaying === true ) {
+			// if ( this.isPlaying === true ) {
 
-				console.warn( 'THREE.Audio: Audio is already playing.' );
-				return;
+			// 	console.warn( 'THREE.Audio: Audio is already playing.' );
+			// 	return;
 
-			}
+			// }
 
-			if ( this.hasPlaybackControl === false ) {
+			// if ( this.hasPlaybackControl === false ) {
 
-				console.warn( 'THREE.Audio: this Audio has no playback control.' );
-				return;
+			// 	console.warn( 'THREE.Audio: this Audio has no playback control.' );
+			// 	return;
 
-			}
+			// }
 
 			var source = this.context.createBufferSource();
 
@@ -38577,12 +39020,12 @@
 
 		pause: function () {
 
-			if ( this.hasPlaybackControl === false ) {
+			// if ( this.hasPlaybackControl === false ) {
 
-				console.warn( 'THREE.Audio: this Audio has no playback control.' );
-				return;
+			// 	console.warn( 'THREE.Audio: this Audio has no playback control.' );
+			// 	return;
 
-			}
+			// }
 
 			if ( this.isPlaying === true ) {
 
@@ -38598,12 +39041,12 @@
 
 		stop: function () {
 
-			if ( this.hasPlaybackControl === false ) {
+			// if ( this.hasPlaybackControl === false ) {
 
-				console.warn( 'THREE.Audio: this Audio has no playback control.' );
-				return;
+			// 	console.warn( 'THREE.Audio: this Audio has no playback control.' );
+			// 	return;
 
-			}
+			// }
 
 			this.source.stop();
 			this.offset = 0;
@@ -38701,12 +39144,12 @@
 
 		setPlaybackRate: function ( value ) {
 
-			if ( this.hasPlaybackControl === false ) {
+			// if ( this.hasPlaybackControl === false ) {
 
-				console.warn( 'THREE.Audio: this Audio has no playback control.' );
-				return;
+			// 	console.warn( 'THREE.Audio: this Audio has no playback control.' );
+			// 	return;
 
-			}
+			// }
 
 			this.playbackRate = value;
 
@@ -38734,12 +39177,12 @@
 
 		getLoop: function () {
 
-			if ( this.hasPlaybackControl === false ) {
+			// if ( this.hasPlaybackControl === false ) {
 
-				console.warn( 'THREE.Audio: this Audio has no playback control.' );
-				return false;
+			// 	console.warn( 'THREE.Audio: this Audio has no playback control.' );
+			// 	return false;
 
-			}
+			// }
 
 			return this.loop;
 
@@ -38747,12 +39190,12 @@
 
 		setLoop: function ( value ) {
 
-			if ( this.hasPlaybackControl === false ) {
+			// if ( this.hasPlaybackControl === false ) {
 
-				console.warn( 'THREE.Audio: this Audio has no playback control.' );
-				return;
+			// 	console.warn( 'THREE.Audio: this Audio has no playback control.' );
+			// 	return;
 
-			}
+			// }
 
 			this.loop = value;
 
@@ -38778,7 +39221,7 @@
 
 			return this;
 
-		}
+		},
 
 	} );
 
@@ -38862,6 +39305,11 @@
 				Object3D.prototype.updateMatrixWorld.call( this, force );
 
 				position.setFromMatrixPosition( this.matrixWorld );
+
+	      if (isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) {
+	        console.warn('The panner position is NaN and it would crash the engine');
+	        return;
+	      }
 
 				this.panner.setPosition( position.x, position.y, position.z );
 
@@ -42036,7 +42484,7 @@
 
 	function ascSort( a, b ) {
 
-		return a.distance - b.distance;
+		return a.distanceSq - b.distanceSq;
 
 	}
 
@@ -42128,6 +42576,218 @@
 		}
 
 	} );
+
+
+	var intersectInvisibleObject = function(object, raycaster, intersects, recursive) {
+
+	  object.raycast(raycaster, intersects);
+
+	  if (recursive === true) {
+
+	    console.warn('Do not use for recursion! Returning.');
+	    return;
+
+	  }
+
+	};
+
+	Raycaster.prototype.intersectInvisibleObjects = function(objects, recursive) {
+
+	  var intersects = [];
+
+	  if (Array.isArray(objects) === false) {
+
+	    console.warn('THREE.Raycaster.intersectObjects: objects is not an Array.');
+	    return intersects;
+
+	  }
+
+	  for (var i = 0, l = objects.length; i < l; i++) {
+
+	    intersectInvisibleObject(objects[i], this, intersects, recursive);
+
+	  }
+
+	  intersects.sort(ascSort);
+
+	  return intersects;
+
+	};
+
+	Raycaster.prototype.intersectBBoxes = function(objects, recursive) {
+
+	  var intersects = [];
+	  var intersect = null;
+
+	  for (var i = 0, l = objects.length; i < l; i++) {
+
+	    var obj = objects[i];
+
+	    if ((intersect = obj.raycastBBoxOnly(this))) {
+	      intersect.object = obj;
+	      intersects.push(intersect);
+	    }
+
+	  }
+
+	  intersects.sort(ascSort);
+
+	  return intersects;
+
+	};
+
+	Raycaster.prototype.intersectRemote = function ( data, callback, scene, objCache ) {
+
+	  var results = [];
+
+	  this.ray.origin.fromArray(data.raycaster.origin);
+	  this.ray.direction.fromArray(data.raycaster.direction);
+
+	  this.near = data.raycaster.near || this.near;
+	  this.far = data.raycaster.far || this.far;
+
+	  for (var i = 0, j = data.items.length; i < j; ++i) {
+	    var item = data.items[i],
+	      intersects = [],
+	      rootObject = scene;
+
+	    if (item.root) {
+	      rootObject = scene.getObjectByProperty('name', item.root.name);
+	      rootObject.allTransformsFromArrays(item.root);
+	    }
+
+	    var obj = objCache[item.name];
+
+	    if (!obj) {
+
+	      if (item.name === 'terrainMesh' || item.name.includes('tiles_cluster')) {
+
+	        obj = objCache[item.name] = item;
+
+	      } else {
+	        // find element belonging to it's parent i.e. car window, but not player inside car
+	        obj = objCache[item.name] = rootObject.getObjectByProperty('name', item.name);
+
+	        if (!obj || rootObject === obj) {
+
+	          console.warn('No object with name: ', item.name, ' found inside: ', rootObject.name);
+	          continue;
+
+	        }
+
+	      }
+
+	    }
+
+	    if (item.name !== 'terrainMesh' && !item.name.includes('tiles_cluster')) {
+
+	      obj.allTransformsFromArrays(item);
+
+	    }
+
+			if ( item.type === 'actor' ) {
+
+				const bones = item.bones;
+
+				if ( bones ) {
+
+					const skeleton = obj.skeleton;
+					if ( ! skeleton ) {
+
+						console.warn( 'Item was provided bones, but it does not have a skeleton' );
+						continue;
+
+					}
+
+					// obj.updateBones(obj, bones);
+					const hips = obj.bones[ 'Bone.Hips' ];
+					Object.keys( bones ).forEach( key => {
+
+						if ( bones[ key ].position ) obj.bones[ key ].position.fromArray( bones[ key ].position );
+						obj.bones[ key ].quaternion.fromArray( bones[ key ].quaternion );
+						// obj.bones[ key ].updateMatrix();
+						// Or once for the whole mesh with children?
+						// obj.bones[ key ].updateMatrixWorldNoChildren(true);
+
+					} );
+
+					obj.updateMatrixWorld( true );
+					obj.geometry.expensiveCalculateVertices( obj );
+					obj.geometry.computeBoundingBox( true );
+					obj.geometry.computeBoundingSphere( true );
+
+					// obj.bones[ 'Bone.Hips' ].position.set(0, 0, 0);
+					// obj.bones[ 'Bone.Hips' ].updateMatrix();
+					// obj.bones[ 'Bone.Hips' ].updateMatrixWorldNoChildren( true );
+					// obj.bones[ 'Bone.Hips' ].updateMatrixWorld( true );
+
+				}
+
+			}
+
+	    if (data.bboxOnly) {
+
+	      // TODO: This was bbox version and should be separate from full intersection version
+	      var intersect = obj.raycastBBoxOnly(this);
+	      intersect && intersects.push(intersect);
+
+	    } else {
+
+	      if (item.name === 'window1') {
+	        //debugger;
+	      }
+	      obj.raycast(this, intersects);
+
+	    }
+
+	    intersects.length && this.prepareAnswer(intersects, results, item.uuid);
+
+	  }
+
+	  results.sort(function(a, b) {
+
+	    return a.distanceSq - b.distanceSq;
+
+	  });
+
+	  if (typeof callback !== 'undefined') {
+
+	    callback(results);
+
+	  }
+
+	  return results;
+
+	};
+
+	Raycaster.prototype.prepareAnswer = function(intersects, results, uuid) {
+
+	  for (var i = 0, j = intersects.length; i < j; ++i) {
+
+	    var intersect = intersects[i];
+
+	    if (intersect.isVector3) { // Vector3 intersect is for bboxonly intersection type
+	      results.push({
+	        bboxOnly: true,
+	        uuid: uuid,
+	        point: intersect,
+	      });
+	    } else {
+	      results.push({
+	        bboxOnly: false,
+	        uuid: uuid,
+	        name: intersect.object.name,
+	        distanceSq: intersect.distanceSq !== undefined ? intersect.distanceSq : this.ray.origin.distanceToSquared( intersect.point ), // workaround for accelerated raycast
+	        point: intersect.point,
+	        face: intersect.face,
+	        faceIndex: intersect.faceIndex,
+	        uv: intersect.uv && intersect.uv,
+	      });
+	    }
+
+	  }
+
+	};
 
 	/**
 	 * @author alteredq / http://alteredqualia.com/
@@ -42572,6 +43232,153 @@
 		equals: function ( box ) {
 
 			return box.min.equals( this.min ) && box.max.equals( this.max );
+
+		}
+
+	} );
+
+	/**
+	 * @author bhouston / http://clara.io
+	 */
+
+	function Line3( start, end ) {
+
+		this.start = ( start !== undefined ) ? start : new Vector3();
+		this.end = ( end !== undefined ) ? end : new Vector3();
+
+	}
+
+	Object.assign( Line3.prototype, {
+
+		set: function ( start, end ) {
+
+			this.start.copy( start );
+			this.end.copy( end );
+
+			return this;
+
+		},
+
+		clone: function () {
+
+			return new this.constructor().copy( this );
+
+		},
+
+		copy: function ( line ) {
+
+			this.start.copy( line.start );
+			this.end.copy( line.end );
+
+			return this;
+
+		},
+
+		getCenter: function ( target ) {
+
+			if ( target === undefined ) {
+
+				console.warn( 'THREE.Line3: .getCenter() target is now required' );
+				target = new Vector3();
+
+			}
+
+			return target.addVectors( this.start, this.end ).multiplyScalar( 0.5 );
+
+		},
+
+		delta: function ( target ) {
+
+			if ( target === undefined ) {
+
+				console.warn( 'THREE.Line3: .delta() target is now required' );
+				target = new Vector3();
+
+			}
+
+			return target.subVectors( this.end, this.start );
+
+		},
+
+		distanceSq: function () {
+
+			return this.start.distanceToSquared( this.end );
+
+		},
+
+		distance: function () {
+
+			return this.start.distanceTo( this.end );
+
+		},
+
+		at: function ( t, target ) {
+
+			if ( target === undefined ) {
+
+				console.warn( 'THREE.Line3: .at() target is now required' );
+				target = new Vector3();
+
+			}
+
+			return this.delta( target ).multiplyScalar( t ).add( this.start );
+
+		},
+
+		closestPointToPointParameter: function () {
+
+			var startP = new Vector3();
+			var startEnd = new Vector3();
+
+			return function closestPointToPointParameter( point, clampToLine ) {
+
+				startP.subVectors( point, this.start );
+				startEnd.subVectors( this.end, this.start );
+
+				var startEnd2 = startEnd.dot( startEnd );
+				var startEnd_startP = startEnd.dot( startP );
+
+				var t = startEnd_startP / startEnd2;
+
+				if ( clampToLine ) {
+
+					t = _Math.clamp( t, 0, 1 );
+
+				}
+
+				return t;
+
+			};
+
+		}(),
+
+		closestPointToPoint: function ( point, clampToLine, target ) {
+
+			var t = this.closestPointToPointParameter( point, clampToLine );
+
+			if ( target === undefined ) {
+
+				console.warn( 'THREE.Line3: .closestPointToPoint() target is now required' );
+				target = new Vector3();
+
+			}
+
+			return this.delta( target ).multiplyScalar( t ).add( this.start );
+
+		},
+
+		applyMatrix4: function ( matrix ) {
+
+			this.start.applyMatrix4( matrix );
+			this.end.applyMatrix4( matrix );
+
+			return this;
+
+		},
+
+		equals: function ( line ) {
+
+			return line.start.equals( this.start ) && line.end.equals( this.end );
 
 		}
 
@@ -43805,7 +44612,7 @@
 
 			position.needsUpdate = true;
 
-			this.geometry.computeBoundingSphere();
+			this.geometry.computeBoundingSphere(this.scale);
 
 		};
 
@@ -43934,8 +44741,7 @@
 	 *  headWidth - Number
 	 */
 
-	var lineGeometry;
-	var coneGeometry;
+	var lineGeometry, coneGeometry;
 
 	function ArrowHelper( dir, origin, length, color, headLength, headWidth ) {
 
@@ -44061,6 +44867,245 @@
 
 	AxesHelper.prototype = Object.create( LineSegments.prototype );
 	AxesHelper.prototype.constructor = AxesHelper;
+
+	/**
+	 * @author mrdoob / http://mrdoob.com/
+	 */
+
+	function WebVRManager( renderer ) {
+
+		var scope = this;
+
+		var device = null;
+		var frameData = null;
+
+		var poseTarget = null;
+
+		var standingMatrix = new Matrix4();
+		var standingMatrixInverse = new Matrix4();
+
+		if ( typeof window !== 'undefined' && 'VRFrameData' in window ) {
+
+			frameData = new window.VRFrameData();
+			window.addEventListener( 'vrdisplaypresentchange', onVRDisplayPresentChange, false );
+
+		}
+
+		var matrixWorldInverse = new Matrix4();
+		var tempQuaternion = new Quaternion();
+		var tempPosition = new Vector3();
+
+		var cameraL = new PerspectiveCamera();
+		cameraL.bounds = new Vector4( 0.0, 0.0, 0.5, 1.0 );
+		cameraL.layers.enable( 1 );
+
+		var cameraR = new PerspectiveCamera();
+		cameraR.bounds = new Vector4( 0.5, 0.0, 0.5, 1.0 );
+		cameraR.layers.enable( 2 );
+
+		var cameraVR = new ArrayCamera( [ cameraL, cameraR ] );
+		cameraVR.layers.enable( 1 );
+		cameraVR.layers.enable( 2 );
+
+		//
+
+		function isPresenting() {
+
+			return device !== null && device.isPresenting === true;
+
+		}
+
+		var currentSize, currentPixelRatio;
+
+		function onVRDisplayPresentChange() {
+
+			if ( isPresenting() ) {
+
+				var eyeParameters = device.getEyeParameters( 'left' );
+				var renderWidth = eyeParameters.renderWidth;
+				var renderHeight = eyeParameters.renderHeight;
+
+				currentPixelRatio = renderer.getPixelRatio();
+				currentSize = renderer.getSize();
+
+				renderer.setDrawingBufferSize( renderWidth * 2, renderHeight, 1 );
+
+			} else if ( scope.enabled ) {
+
+				renderer.setDrawingBufferSize( currentSize.width, currentSize.height, currentPixelRatio );
+
+			}
+
+		}
+
+		//
+
+		this.enabled = false;
+		this.userHeight = 1.6;
+
+		this.getDevice = function () {
+
+			return device;
+
+		};
+
+		this.setDevice = function ( value ) {
+
+			if ( value !== undefined ) device = value;
+
+		};
+
+		this.setPoseTarget = function ( object ) {
+
+			if ( object !== undefined ) poseTarget = object;
+
+		};
+
+		this.getCamera = function ( camera ) {
+
+			if ( device === null ) return camera;
+
+			device.depthNear = camera.near;
+			device.depthFar = camera.far;
+
+			device.getFrameData( frameData );
+
+			//
+
+			var stageParameters = device.stageParameters;
+
+			if ( stageParameters ) {
+
+				standingMatrix.fromArray( stageParameters.sittingToStandingTransform );
+
+			} else {
+
+				standingMatrix.makeTranslation( 0, scope.userHeight, 0 );
+
+			}
+
+
+			var pose = frameData.pose;
+			var poseObject = poseTarget !== null ? poseTarget : camera;
+
+			// We want to manipulate poseObject by its position and quaternion components since users may rely on them.
+			poseObject.matrix.copy( standingMatrix );
+			poseObject.matrix.decompose( poseObject.position, poseObject.quaternion, poseObject.scale );
+
+			if ( pose.orientation !== null ) {
+
+				tempQuaternion.fromArray( pose.orientation );
+				poseObject.quaternion.multiply( tempQuaternion );
+
+			}
+
+			if ( pose.position !== null ) {
+
+				tempQuaternion.setFromRotationMatrix( standingMatrix );
+				tempPosition.fromArray( pose.position );
+				tempPosition.applyQuaternion( tempQuaternion );
+				poseObject.position.add( tempPosition );
+
+			}
+
+			poseObject.updateMatrixWorld();
+
+			if ( device.isPresenting === false ) return camera;
+
+			//
+
+			cameraL.near = camera.near;
+			cameraR.near = camera.near;
+
+			cameraL.far = camera.far;
+			cameraR.far = camera.far;
+
+			cameraVR.matrixWorld.copy( camera.matrixWorld );
+			cameraVR.matrixWorldInverse.copy( camera.matrixWorldInverse );
+
+			cameraL.matrixWorldInverse.fromArray( frameData.leftViewMatrix );
+			cameraR.matrixWorldInverse.fromArray( frameData.rightViewMatrix );
+
+			// TODO (mrdoob) Double check this code
+
+			standingMatrixInverse.getInverse( standingMatrix );
+
+			cameraL.matrixWorldInverse.multiply( standingMatrixInverse );
+			cameraR.matrixWorldInverse.multiply( standingMatrixInverse );
+
+			var parent = poseObject.parent;
+
+			if ( parent !== null ) {
+
+				matrixWorldInverse.getInverse( parent.matrixWorld );
+
+				cameraL.matrixWorldInverse.multiply( matrixWorldInverse );
+				cameraR.matrixWorldInverse.multiply( matrixWorldInverse );
+
+			}
+
+			// envMap and Mirror needs camera.matrixWorld
+
+			cameraL.matrixWorld.getInverse( cameraL.matrixWorldInverse );
+			cameraR.matrixWorld.getInverse( cameraR.matrixWorldInverse );
+
+			cameraL.projectionMatrix.fromArray( frameData.leftProjectionMatrix );
+			cameraR.projectionMatrix.fromArray( frameData.rightProjectionMatrix );
+
+			// HACK (mrdoob)
+			// https://github.com/w3c/webvr/issues/203
+
+			cameraVR.projectionMatrix.copy( cameraL.projectionMatrix );
+
+			//
+
+			var layers = device.getLayers();
+
+			if ( layers.length ) {
+
+				var layer = layers[ 0 ];
+
+				if ( layer.leftBounds !== null && layer.leftBounds.length === 4 ) {
+
+					cameraL.bounds.fromArray( layer.leftBounds );
+
+				}
+
+				if ( layer.rightBounds !== null && layer.rightBounds.length === 4 ) {
+
+					cameraR.bounds.fromArray( layer.rightBounds );
+
+				}
+
+			}
+
+			return cameraVR;
+
+		};
+
+		this.getStandingMatrix = function () {
+
+			return standingMatrix;
+
+		};
+
+		this.submitFrame = function () {
+
+			if ( isPresenting() ) device.submitFrame();
+
+		};
+
+		this.dispose = function () {
+
+			if ( typeof window !== 'undefined' ) {
+
+				window.removeEventListener( 'vrdisplaypresentchange', onVRDisplayPresentChange );
+
+			}
+
+		};
+
+	}
 
 	/**
 	 * @author mrdoob / http://mrdoob.com/
@@ -46151,10 +47196,14 @@
 	exports.ClampToEdgeWrapping = ClampToEdgeWrapping;
 	exports.MirroredRepeatWrapping = MirroredRepeatWrapping;
 	exports.NearestFilter = NearestFilter;
+	exports.NearestMipmapNearestFilter = NearestMipmapNearestFilter;
 	exports.NearestMipMapNearestFilter = NearestMipMapNearestFilter;
+	exports.NearestMipmapLinearFilter = NearestMipmapLinearFilter;
 	exports.NearestMipMapLinearFilter = NearestMipMapLinearFilter;
 	exports.LinearFilter = LinearFilter;
+	exports.LinearMipmapNearestFilter = LinearMipmapNearestFilter;
 	exports.LinearMipMapNearestFilter = LinearMipMapNearestFilter;
+	exports.LinearMipmapLinearFilter = LinearMipmapLinearFilter;
 	exports.LinearMipMapLinearFilter = LinearMipMapLinearFilter;
 	exports.UnsignedByteType = UnsignedByteType;
 	exports.ByteType = ByteType;
