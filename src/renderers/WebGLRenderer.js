@@ -672,6 +672,8 @@ function WebGLRenderer( parameters ) {
 
 	};
 
+	this.renderingErrors = 0;
+
 	this.renderBufferDirect = function ( camera, fog, geometry, material, object, group ) {
 
 		var frontFaceCW = ( object.isMesh && object.matrixWorld.determinant() < 0 );
@@ -717,8 +719,13 @@ function WebGLRenderer( parameters ) {
 		if ( index !== null ) {
 
 			if(!(attribute = attributes.get( index ))) {
-				console.error('Error when trying to render object: ');
-				console.log(object);
+				if (this.renderingErrors <= 10) {
+					this.renderingErrors++;
+					console.error('Error when trying to render object: ' + object.name);
+					if (this.renderingErrors === 10) {
+						console.error('The above error happened 10 times already. Not showing anymore.');
+					}
+				}
 				return false;
 			}
 
@@ -1070,6 +1077,63 @@ function WebGLRenderer( parameters ) {
 
 	};
 
+	// copied from this.render to use force renderer
+	this.forceRender = function ( scene, camera, renderTarget, forceClear ) {
+		_currentGeometryProgram = '';
+		_currentMaterialId = - 1;
+		_currentCamera = null;
+		currentRenderState = renderStates.get( scene, camera );
+		currentRenderState.init();
+		_projScreenMatrix.multiplyMatricesIncludingBottomRow( camera.projectionMatrix, camera.matrixWorldInverse );
+		_frustum.setFromMatrix( _projScreenMatrix );
+		_localClippingEnabled = this.localClippingEnabled;
+		_clippingEnabled = _clipping.init( this.clippingPlanes, _localClippingEnabled, camera );
+		currentRenderList = renderLists.get( scene, camera );
+		currentRenderList.init();
+		var children = scene.children;
+		for ( var i = 0, l = children.length; i < l; i ++ ) {
+			forceProjectObject( children[ i ], camera, _this.sortObjects, false );
+		}
+		// Objects which are hacked into scene will be skipped in above loop i.e. if they are children
+		for(var j = 0, jl = scene.hackedIntoScene.length; j < jl; j++){
+			forceProjectObject( scene.hackedIntoScene[j], camera, _this.sortObjects, true );
+		}
+		if ( _this.sortObjects === true ) {
+			currentRenderList.sort();
+		}
+		if ( _clippingEnabled ) _clipping.beginShadows();
+		var shadowsArray = currentRenderState.state.shadowsArray;
+		shadowMap.render( shadowsArray, scene, camera );
+		currentRenderState.setupLights( camera );
+		if ( _clippingEnabled ) _clipping.endShadows();
+		if ( this.info.autoReset ) this.info.reset();
+		if ( renderTarget === undefined ) {
+			renderTarget = null;
+		}
+		this.setRenderTarget( renderTarget );
+		var opaqueObjects = currentRenderList.opaque;
+		var transparentObjects = currentRenderList.transparent;
+		if ( scene.overrideMaterial ) {
+			var overrideMaterial = scene.overrideMaterial;
+			if ( opaqueObjects.length ) renderObjects( opaqueObjects, scene, camera, overrideMaterial );
+			if ( transparentObjects.length ) renderObjects( transparentObjects, scene, camera, overrideMaterial );
+		} else {
+			if ( opaqueObjects.length ) renderObjects( opaqueObjects, scene, camera );
+			if ( transparentObjects.length ) renderObjects( transparentObjects, scene, camera );
+
+		}
+		if ( renderTarget ) {
+			textures.updateRenderTargetMipmap( renderTarget );
+		}
+		state.buffers.depth.setTest( true );
+		state.buffers.depth.setMask( true );
+		state.buffers.color.setMask( true );
+		state.setPolygonOffset( false );
+		_isWorker && _gl.commit();
+		currentRenderList = null;
+		currentRenderState = null;
+	}
+
 	// Rendering
 
 	this.render = function ( scene, camera, renderTarget, forceClear ) {
@@ -1285,6 +1349,91 @@ function WebGLRenderer( parameters ) {
 	}
 	*/
 
+	function forceProjectObject (object, camera, sortObjects) {
+		if ( object.isLight ) {
+
+			currentRenderState.pushLight( object );
+
+			if ( object.castShadow ) {
+
+				currentRenderState.pushShadow( object );
+
+			}
+
+		} else if ( object.isSprite ) {
+
+			object.inFrustum = true;
+
+			currentRenderState.pushSprite( object );
+
+		} else if ( object.isImmediateRenderObject ) {
+
+			if ( sortObjects ) {
+
+				_vector3.setFromMatrixPosition( object.matrixWorld )
+					.applyMatrix4( _projScreenMatrix );
+
+			}
+
+			currentRenderList.push( object, null, object.material, _vector3.z, null );
+
+		} else if ( object.isMesh || object.isLine || object.isPoints ) {
+
+			if ( object.isSkinnedMesh ) {
+
+				object.skeleton.update();
+
+			}
+
+			object.inFrustum = true;
+
+			if ( sortObjects ) {
+
+				_vector3.setFromMatrixPosition( object.matrixWorld )
+					.applyMatrix4( _projScreenMatrix );
+
+			}
+
+			var geometry = objects.update( object );
+			var material = object.material;
+
+			if ( Array.isArray( material ) ) {
+
+				var groups = geometry.groups;
+
+				for ( var i = 0, l = groups.length; i < l; i ++ ) {
+
+					var group = groups[ i ];
+					var groupMaterial = material[ group.materialIndex ];
+
+					if ( groupMaterial && groupMaterial.visible ) {
+
+						currentRenderList.push( object, geometry, groupMaterial, _vector3.z, group );
+
+					}
+
+				}
+
+			} else if ( material.visible && material.opacity !== 0 ) {
+
+				currentRenderList.push( object, geometry, material, _vector3.z, null );
+
+			}
+
+		}
+
+		object.updated = false;
+
+		var children = object.children;
+
+		for ( var i = 0, l = children.length; i < l; i ++ ) {
+
+			forceProjectObject( children[ i ], camera, sortObjects );
+
+		}
+
+	}
+
 	function projectObject( object, camera, sortObjects, hackedIntoScene ) {
 
 		if ( object.visible === false || (!hackedIntoScene && object.hackedIntoScene) ) return;
@@ -1378,7 +1527,7 @@ function WebGLRenderer( parameters ) {
 
 		object.updated = false;
 
-		// only continue with children if object is visible in scene or this is Scene(not in frustum by default)
+		// skip children of objects not in frustum but allow children on direct instances of Object3D
 		if( !object.inFrustum && object.type !== 'Object3D' ) { // and containers
 			return;
 		}
