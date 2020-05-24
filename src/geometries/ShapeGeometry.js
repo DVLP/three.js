@@ -49,7 +49,7 @@ ShapeGeometry.prototype.toJSON = function () {
 
 // ShapeBufferGeometry
 
-function ShapeBufferGeometry( shapes, curveSegments ) {
+function ShapeBufferGeometry( shapes, curveSegments, invert ) {
 
 	BufferGeometry.call( this );
 
@@ -78,13 +78,13 @@ function ShapeBufferGeometry( shapes, curveSegments ) {
 
 	if ( Array.isArray( shapes ) === false ) {
 
-		addShape( shapes );
+		addShape( shapes, invert );
 
 	} else {
 
 		for ( var i = 0; i < shapes.length; i ++ ) {
 
-			addShape( shapes[ i ] );
+			addShape( shapes[ i ], invert );
 
 			this.addGroup( groupStart, groupCount, i ); // enables MultiMaterial support
 
@@ -105,7 +105,7 @@ function ShapeBufferGeometry( shapes, curveSegments ) {
 
 	// helper functions
 
-	function addShape( shape ) {
+	function addShape( shape, invert ) {
 
 		var i, l, shapeHole;
 
@@ -169,8 +169,11 @@ function ShapeBufferGeometry( shapes, curveSegments ) {
 			var a = face[ 0 ] + indexOffset;
 			var b = face[ 1 ] + indexOffset;
 			var c = face[ 2 ] + indexOffset;
-
-			indices.push( a, b, c );
+			if (invert) {
+				indices.push( a, c, b );
+			} else {
+				indices.push( a, b, c );
+			}
 			groupCount += 3;
 
 		}
