@@ -197,6 +197,97 @@ function WebGLLights() {
 	var matrix4 = new Matrix4();
 	var matrix42 = new Matrix4();
 
+	var maxSpotLights = 2;
+	// 1. We don't want lights hash to change - this would trigger needsUpdate on materials!
+	// 2. We want to keep a pool of 6 lights to be reused when needed
+	// 3. In case of adding more than 6 lights, only placeholder objects should be created
+	function setupSpotlightsFromPool (lights, camera) {
+		var spotLightsPool = [];
+		var spotLength = 0;
+		var numSpotShadows = 0;
+		var viewMatrix = camera.matrixWorldInverse;
+
+		// get all spotlights into an array
+		for ( var l = 0, ll = lights.length; l < ll; l ++ ) {
+			var light = lights[l];
+
+			if(light.isSpotLight) {
+				spotLightsPool.push(light);
+
+				var distnaceSquared = vector3.setFromMatrixPosition(light.matrixWorld).distanceToSquared(camera.parent ? camera.parent.position : new Vector3(0, 0, 0));
+				var inFrustum = (light.parent && light.parent.inFrustum) ? 1 : 3; // not being in frustum makes lights 5 times less important than those in
+				if(!light.parent) {
+					inFrustum = camera.sphereInFov(light.position.x, light.position.z, 5) ? 1 : 3;
+				}
+
+				light.priority = light.priority || 1;
+				light.priorityDistanceFromCamera = distnaceSquared * light.priority * inFrustum;
+				if(distnaceSquared > 40 * 40 && inFrustum > 1) {
+					// if not in frustum and far completelty kill
+					light.priorityDistanceFromCamera *= 100000;
+				}
+				// light turned off? bottom of priority
+				if(light.intensity === 0) {
+					light.priorityDistanceFromCamera *= 100000000;
+				}
+			}
+		}
+
+		// sort by importance
+		spotLightsPool.sort(function (a, b) {
+			return a.priorityDistanceFromCamera - b.priorityDistanceFromCamera;
+		});
+		for ( l = 0, ll = Math.min(spotLightsPool.length, maxSpotLights); l < ll; l++ ) {
+			var light = spotLightsPool[l];
+			var uniforms = cache.get( light );
+
+			uniforms.position.setFromMatrixPosition( light.matrixWorld );
+			uniforms.position.applyMatrix4( viewMatrix );
+
+			uniforms.color.copy( light.color ).multiplyScalar( light.intensity );
+			uniforms.distance = light.distance;
+
+			uniforms.direction.setFromMatrixPosition( light.matrixWorld );
+			vector3.setFromMatrixPosition( light.target.matrixWorld );
+			uniforms.direction.sub( vector3 );
+			uniforms.direction.transformDirection( viewMatrix );
+
+			uniforms.coneCos = Math.cos( light.angle );
+			uniforms.penumbraCos = Math.cos( light.angle * ( 1 - light.penumbra ) );
+			uniforms.decay = light.decay;
+
+			if ( light.castShadow ) {
+
+				var shadow = light.shadow;
+
+				var shadowUniforms = shadowCache.get( light );
+
+				shadowUniforms.shadowBias = shadow.bias;
+				shadowUniforms.shadowRadius = shadow.radius;
+				shadowUniforms.shadowMapSize = shadow.mapSize;
+
+				var shadowMap = ( light.shadow && light.shadow.map ) ? light.shadow.map.texture : null;
+
+				state.spotShadow[ spotLength ] = shadowUniforms;
+				state.spotShadowMap[ spotLength ] = shadowMap;
+				state.spotShadowMatrix[ spotLength ] = light.shadow.matrix;
+
+				numSpotShadows ++;
+
+			}
+
+			state.spot[ spotLength ] = uniforms;
+
+			spotLength++;
+
+		}
+		return {
+			spotLength,
+			numSpotShadows
+		};
+
+	}
+
 	function setup( lights, shadows, camera ) {
 
 		var r = 0, g = 0, b = 0;
@@ -205,13 +296,14 @@ function WebGLLights() {
 
 		var directionalLength = 0;
 		var pointLength = 0;
-		var spotLength = 0;
+		var spotPool = setupSpotlightsFromPool(lights, camera);
+		var spotLength = spotPool.spotLength;
 		var rectAreaLength = 0;
 		var hemiLength = 0;
 
 		var numDirectionalShadows = 0;
 		var numPointShadows = 0;
-		var numSpotShadows = 0;
+		var numSpotShadows = spotPool.numSpotShadows;
 
 		var viewMatrix = camera.matrixWorldInverse;
 
@@ -275,44 +367,44 @@ function WebGLLights() {
 
 			} else if ( light.isSpotLight ) {
 
-				var uniforms = cache.get( light );
+				// var uniforms = cache.get( light );
 
-				uniforms.position.setFromMatrixPosition( light.matrixWorld );
-				uniforms.position.applyMatrix4( viewMatrix );
+				// uniforms.position.setFromMatrixPosition( light.matrixWorld );
+				// uniforms.position.applyMatrix4( viewMatrix );
 
-				uniforms.color.copy( color ).multiplyScalar( intensity );
-				uniforms.distance = distance;
+				// uniforms.color.copy( color ).multiplyScalar( intensity );
+				// uniforms.distance = distance;
 
-				uniforms.direction.setFromMatrixPosition( light.matrixWorld );
-				vector3.setFromMatrixPosition( light.target.matrixWorld );
-				uniforms.direction.sub( vector3 );
-				uniforms.direction.transformDirection( viewMatrix );
+				// uniforms.direction.setFromMatrixPosition( light.matrixWorld );
+				// vector3.setFromMatrixPosition( light.target.matrixWorld );
+				// uniforms.direction.sub( vector3 );
+				// uniforms.direction.transformDirection( viewMatrix );
 
-				uniforms.coneCos = Math.cos( light.angle );
-				uniforms.penumbraCos = Math.cos( light.angle * ( 1 - light.penumbra ) );
-				uniforms.decay = light.decay;
+				// uniforms.coneCos = Math.cos( light.angle );
+				// uniforms.penumbraCos = Math.cos( light.angle * ( 1 - light.penumbra ) );
+				// uniforms.decay = light.decay;
 
-				if ( light.castShadow ) {
+				// if ( light.castShadow ) {
 
-					var shadow = light.shadow;
+				// 	var shadow = light.shadow;
 
-					var shadowUniforms = shadowCache.get( light );
+					// var shadowUniforms = shadowCache.get( light );
 
-					shadowUniforms.shadowBias = shadow.bias;
-					shadowUniforms.shadowRadius = shadow.radius;
-					shadowUniforms.shadowMapSize = shadow.mapSize;
+					// shadowUniforms.shadowBias = shadow.bias;
+					// shadowUniforms.shadowRadius = shadow.radius;
+					// shadowUniforms.shadowMapSize = shadow.mapSize;
 
-					state.spotShadow[ spotLength ] = shadowUniforms;
-					state.spotShadowMap[ spotLength ] = shadowMap;
-					state.spotShadowMatrix[ spotLength ] = light.shadow.matrix;
+					// state.spotShadow[ spotLength ] = shadowUniforms;
+					// state.spotShadowMap[ spotLength ] = shadowMap;
+					// state.spotShadowMatrix[ spotLength ] = light.shadow.matrix;
 
-					numSpotShadows ++;
+				// 	numSpotShadows ++;
 
-				}
+				// }
 
-				state.spot[ spotLength ] = uniforms;
+				// state.spot[ spotLength ] = uniforms;
 
-				spotLength ++;
+				// spotLength ++;
 
 			} else if ( light.isRectAreaLight ) {
 

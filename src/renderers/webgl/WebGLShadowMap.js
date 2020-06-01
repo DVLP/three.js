@@ -183,7 +183,10 @@ function WebGLShadowMap( _renderer, _objects, maxTextureSize ) {
 
 				_frustum = shadow.getFrustum();
 
-				renderObject( scene, camera, shadow.camera, light, this.type );
+				var children = scene.children;
+				for ( var i = 0, l = children.length; i < l; i ++ ) {
+					renderObject( children[ i ], camera, shadow.camera, light, this.type );
+				}
 
 			}
 
@@ -397,7 +400,7 @@ function WebGLShadowMap( _renderer, _objects, maxTextureSize ) {
 		if ( visible && ( object.isMesh || object.isLine || object.isPoints ) ) {
 
 			if ( ( object.castShadow || ( object.receiveShadow && type === VSMShadowMap ) ) && ( ! object.frustumCulled || _frustum.intersectsObject( object ) ) ) {
-
+			// if ( object.castShadow && ( ( object.frustumCulled === false || object.inFrustum ) ) ) {
 				object.modelViewMatrix.multiplyMatrices( shadowCamera.matrixWorldInverse, object.matrixWorld );
 
 				var geometry = _objects.update( object );

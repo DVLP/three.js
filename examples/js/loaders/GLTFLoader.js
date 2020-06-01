@@ -1562,6 +1562,10 @@ THREE.GLTFLoader = ( function () {
 					break;
 
 				case 'bufferView':
+					dependency = this.loadBufferViewGzipped( index );
+					break;
+
+				case 'bufferViewImage':
 					dependency = this.loadBufferView( index );
 					break;
 
@@ -1685,6 +1689,33 @@ THREE.GLTFLoader = ( function () {
 			var byteLength = bufferViewDef.byteLength || 0;
 			var byteOffset = bufferViewDef.byteOffset || 0;
 			return buffer.slice( byteOffset, byteOffset + byteLength );
+
+		} );
+
+	};
+
+	/**
+	 * Same as above but unpacking gzipped stuff, not used by images
+	 */
+	GLTFParser.prototype.loadBufferViewGzipped = function ( bufferViewIndex ) {
+
+		var bufferViewDef = this.json.bufferViews[ bufferViewIndex ];
+
+		return this.getDependency( 'buffer', bufferViewDef.buffer ).then( function ( buffer ) {
+
+			var byteLength = bufferViewDef.byteLength || 0;
+			var byteOffset = bufferViewDef.byteOffset || 0;
+
+			var arr = new Uint8Array( buffer.slice( byteOffset, byteOffset + byteLength ) );
+
+			var inflate = new Zlib.Inflate( arr ); // eslint-disable-line no-undef
+			var decompressed = inflate.decompress();
+			arr = null;
+			inflate = null;
+
+			// bufferViewDef.byteLength = decompressed.buffer.buteLength;
+
+			return decompressed.buffer;
 
 		} );
 
@@ -1859,7 +1890,7 @@ THREE.GLTFLoader = ( function () {
 
 			// Load binary image data from bufferView, if provided.
 
-			sourceURI = parser.getDependency( 'bufferView', source.bufferView ).then( function ( bufferView ) {
+			sourceURI = parser.getDependency( 'bufferViewImage', source.bufferView ).then( function ( bufferView ) {
 
 				isObjectURL = true;
 				var blob = new Blob( [ bufferView ], { type: source.mimeType } );

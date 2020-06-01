@@ -67,23 +67,47 @@ Object.assign( Frustum.prototype, {
 
 		var planes = this.planes;
 		var me = m.elements;
-		var me0 = me[ 0 ], me1 = me[ 1 ], me2 = me[ 2 ], me3 = me[ 3 ];
-		var me4 = me[ 4 ], me5 = me[ 5 ], me6 = me[ 6 ], me7 = me[ 7 ];
-		var me8 = me[ 8 ], me9 = me[ 9 ], me10 = me[ 10 ], me11 = me[ 11 ];
-		var me12 = me[ 12 ], me13 = me[ 13 ], me14 = me[ 14 ], me15 = me[ 15 ];
+		var me1 = me[ 1 ], me3 = me[ 3 ];
+		var me5 = me[ 5 ], me7 = me[ 7 ];
+		var me9 = me[ 9 ], me11 = me[ 11 ];
+		var me13 = me[ 13 ], me15 = me[ 15 ];
 
-		planes[ 0 ].setComponents( me3 - me0, me7 - me4, me11 - me8, me15 - me12 ).normalize();
-		planes[ 1 ].setComponents( me3 + me0, me7 + me4, me11 + me8, me15 + me12 ).normalize();
+		// planes[ 0 ].setComponents( me3 - me0, me7 - me4, me11 - me8, me15 - me12 ).normalize();
+		// planes[ 1 ].setComponents( me3 + me0, me7 + me4, me11 + me8, me15 + me12 ).normalize();
 		planes[ 2 ].setComponents( me3 + me1, me7 + me5, me11 + me9, me15 + me13 ).normalize();
 		planes[ 3 ].setComponents( me3 - me1, me7 - me5, me11 - me9, me15 - me13 ).normalize();
-		planes[ 4 ].setComponents( me3 - me2, me7 - me6, me11 - me10, me15 - me14 ).normalize();
-		planes[ 5 ].setComponents( me3 + me2, me7 + me6, me11 + me10, me15 + me14 ).normalize();
+		// planes[ 4 ].setComponents( me3 - me2, me7 - me6, me11 - me10, me15 - me14 ).normalize();
+		// planes[ 5 ].setComponents( me3 + me2, me7 + me6, me11 + me10, me15 + me14 ).normalize();
 
 		return this;
 
 	},
 
 	intersectsObject: function ( object ) {
+		// for now just using 2d frustum - downside is top and bottom planes
+		// return true;
+
+		var sphere = object.bsphere || object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale);
+		var planes = this.planes;
+		var center = object.position;
+		var negRadius = - sphere.radius * 2; // added locally
+
+		// first camera.inFov gets executed
+		// (2) bottom (1) right
+		// (3) top (2) left
+		// optimization: i < 4 instead of i < 4 toskip NEAR(5) and FAR(6) frustum planes - that's ~20k calculations per second less
+		// rejection is based on distance instead
+		//for ( var i = 4; i > 2; --i ) {
+		// 2 - bottom
+		if ( planes[ 2 ].distanceToPoint( center ) < negRadius ) return false;
+		// 3 - top
+		if ( planes[ 3 ].distanceToPoint( center ) < negRadius ) return false;
+		//}
+
+		return true;
+	},
+
+	intersectsObjectOld: function ( object ) {
 
 		var geometry = object.geometry;
 

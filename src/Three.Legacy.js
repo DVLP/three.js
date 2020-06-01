@@ -83,7 +83,7 @@ import { LOD } from './objects/LOD.js';
 import { Points } from './objects/Points.js';
 import { Sprite } from './objects/Sprite.js';
 import { Skeleton } from './objects/Skeleton.js';
-import { SkinnedMesh } from './objects/SkinnedMesh.js';
+// import { SkinnedMesh } from './objects/SkinnedMesh.js';
 import { WebGLRenderer } from './renderers/WebGLRenderer.js';
 import { WebGLRenderTarget } from './renderers/WebGLRenderTarget.js';
 import { WebGLCubeRenderTarget } from './renderers/WebGLCubeRenderTarget.js';
@@ -1085,11 +1085,11 @@ Object.defineProperty( Skeleton.prototype, 'useVertexTexture', {
 
 } );
 
-SkinnedMesh.prototype.initBones = function () {
+// SkinnedMesh.prototype.initBones = function () {
 
-	console.error( 'THREE.SkinnedMesh: initBones() has been removed.' );
+// 	console.error( 'THREE.SkinnedMesh: initBones() has been removed.' );
 
-};
+// };
 
 Object.defineProperty( Curve.prototype, '__arcLengthDivisions', {
 

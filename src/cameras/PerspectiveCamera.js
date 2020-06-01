@@ -88,6 +88,14 @@ PerspectiveCamera.prototype = Object.assign( Object.create( Camera.prototype ), 
 
 	},
 
+	setFOV: function ( fov ) {
+
+		var vExtentSlope = Math.tan( MathUtils.DEG2RAD * 0.5 * fov );
+
+		this.setFocalLength( 0.5 * this.getFilmHeight() / vExtentSlope );
+
+	},
+
 	getEffectiveFOV: function () {
 
 		return MathUtils.RAD2DEG * 2 * Math.atan(

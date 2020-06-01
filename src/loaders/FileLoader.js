@@ -2,28 +2,22 @@
  * @author mrdoob / http://mrdoob.com/
  */
 
-import { Cache } from './Cache.js';
-import { Loader } from './Loader.js';
-
-var loading = {};
+import { Cache } from './Cache';
+import { DefaultLoadingManager } from './LoadingManager';
 
 function FileLoader( manager ) {
 
-	Loader.call( this, manager );
+	this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
 
 }
 
-FileLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
-
-	constructor: FileLoader,
+Object.assign( FileLoader.prototype, {
 
 	load: function ( url, onLoad, onProgress, onError ) {
 
 		if ( url === undefined ) url = '';
 
 		if ( this.path !== undefined ) url = this.path + url;
-
-		url = this.manager.resolveURL( url );
 
 		var scope = this;
 
@@ -45,22 +39,6 @@ FileLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 		}
 
-		// Check if request is duplicate
-
-		if ( loading[ url ] !== undefined ) {
-
-			loading[ url ].push( {
-
-				onLoad: onLoad,
-				onProgress: onProgress,
-				onError: onError
-
-			} );
-
-			return;
-
-		}
-
 		// Check for data: URI
 		var dataUriRegex = /^data:(.*?)(;base64)?,(.*)$/;
 		var dataUriRegexResult = url.match( dataUriRegex );
@@ -72,9 +50,9 @@ FileLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 			var isBase64 = !! dataUriRegexResult[ 2 ];
 			var data = dataUriRegexResult[ 3 ];
 
-			data = decodeURIComponent( data );
+			data = window.decodeURIComponent( data );
 
-			if ( isBase64 ) data = atob( data );
+			if ( isBase64 ) data = window.atob( data );
 
 			try {
 
@@ -86,7 +64,9 @@ FileLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 					case 'arraybuffer':
 					case 'blob':
 
-						var view = new Uint8Array( data.length );
+					 	response = new ArrayBuffer( data.length );
+
+						var view = new Uint8Array( response );
 
 						for ( var i = 0; i < data.length; i ++ ) {
 
@@ -96,11 +76,7 @@ FileLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 						if ( responseType === 'blob' ) {
 
-							response = new Blob( [ view.buffer ], { type: mimeType } );
-
-						} else {
-
-							response = view.buffer;
+							response = new Blob( [ response ], { type: mimeType } );
 
 						}
 
@@ -127,8 +103,8 @@ FileLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 				}
 
-				// Wait for next browser tick like standard XMLHttpRequest event dispatching does
-				setTimeout( function () {
+				// Wait for next browser tick
+				window.setTimeout( function () {
 
 					if ( onLoad ) onLoad( response );
 
@@ -138,13 +114,12 @@ FileLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 			} catch ( error ) {
 
-				// Wait for next browser tick like standard XMLHttpRequest event dispatching does
-				setTimeout( function () {
+				// Wait for next browser tick
+				window.setTimeout( function () {
 
 					if ( onError ) onError( error );
 
 					scope.manager.itemError( url );
-					scope.manager.itemEnd( url );
 
 				}, 0 );
 
@@ -152,112 +127,57 @@ FileLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 		} else {
 
-			// Initialise array for duplicate requests
-
-			loading[ url ] = [];
-
-			loading[ url ].push( {
-
-				onLoad: onLoad,
-				onProgress: onProgress,
-				onError: onError
-
-			} );
-
 			var request = new XMLHttpRequest();
-
 			request.open( 'GET', url, true );
 
 			request.addEventListener( 'load', function ( event ) {
 
-				var response = this.response;
+				var response = event.target.response;
 
-				var callbacks = loading[ url ];
+				Cache.add( url, response );
 
-				delete loading[ url ];
+				if ( this.status === 200 ) {
 
-				if ( this.status === 200 || this.status === 0 ) {
+					if ( onLoad ) onLoad( response );
+
+					scope.manager.itemEnd( url );
+
+				} else if ( this.status === 0 ) {
 
 					// Some browsers return HTTP Status 0 when using non-http protocol
 					// e.g. 'file://' or 'data://'. Handle as success.
 
-					if ( this.status === 0 ) console.warn( 'THREE.FileLoader: HTTP Status 0 received.' );
+					console.warn( 'THREE.FileLoader: HTTP Status 0 received.' );
 
-					// Add to cache only on HTTP success, so that we do not cache
-					// error response bodies as proper responses to requests.
-					Cache.add( url, response );
-
-					for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
-
-						var callback = callbacks[ i ];
-						if ( callback.onLoad ) callback.onLoad( response );
-
-					}
+					if ( onLoad ) onLoad( response );
 
 					scope.manager.itemEnd( url );
 
 				} else {
 
-					for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
-
-						var callback = callbacks[ i ];
-						if ( callback.onError ) callback.onError( event );
-
-					}
+					if ( onError ) onError( event );
 
 					scope.manager.itemError( url );
-					scope.manager.itemEnd( url );
 
 				}
 
 			}, false );
 
-			request.addEventListener( 'progress', function ( event ) {
+			if ( onProgress !== undefined ) {
 
-				var callbacks = loading[ url ];
+				request.addEventListener( 'progress', function ( event ) {
 
-				for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
+					onProgress( event );
 
-					var callback = callbacks[ i ];
-					if ( callback.onProgress ) callback.onProgress( event );
+				}, false );
 
-				}
-
-			}, false );
+			}
 
 			request.addEventListener( 'error', function ( event ) {
 
-				var callbacks = loading[ url ];
-
-				delete loading[ url ];
-
-				for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
-
-					var callback = callbacks[ i ];
-					if ( callback.onError ) callback.onError( event );
-
-				}
+				if ( onError ) onError( event );
 
 				scope.manager.itemError( url );
-				scope.manager.itemEnd( url );
-
-			}, false );
-
-			request.addEventListener( 'abort', function ( event ) {
-
-				var callbacks = loading[ url ];
-
-				delete loading[ url ];
-
-				for ( var i = 0, il = callbacks.length; i < il; i ++ ) {
-
-					var callback = callbacks[ i ];
-					if ( callback.onError ) callback.onError( event );
-
-				}
-
-				scope.manager.itemError( url );
-				scope.manager.itemEnd( url );
 
 			}, false );
 
@@ -266,12 +186,6 @@ FileLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 			if ( request.overrideMimeType ) request.overrideMimeType( this.mimeType !== undefined ? this.mimeType : 'text/plain' );
 
-			for ( var header in this.requestHeader ) {
-
-				request.setRequestHeader( header, this.requestHeader[ header ] );
-
-			}
-
 			request.send( null );
 
 		}
@@ -279,6 +193,13 @@ FileLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 		scope.manager.itemStart( url );
 
 		return request;
+
+	},
+
+	setPath: function ( value ) {
+
+		this.path = value;
+		return this;
 
 	},
 

@@ -45,6 +45,10 @@ function Object3D() {
 	this.parent = null;
 	this.children = [];
 
+	this.inFrustum = false;
+	this.hackedIntoScene = false;
+	this.updated = false;
+
 	this.up = Object3D.DefaultUp.clone();
 
 	var position = new Vector3();
@@ -142,7 +146,53 @@ Object3D.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 		this.quaternion.premultiply( q );
 
 		return this;
+	},
 
+	// copy position, rotation and scale from source object
+	allTransformsFromArrays: function(source) {
+
+	  this.position.fromArray(source.position);
+	  this.quaternion.fromArray( source.quaternion );
+	  this.scale.fromArray(source.scale);
+	  this.updateMatrix();
+	  this.updateMatrixWorldNoChildren();
+
+	},
+
+	// find ancestor who's directly on the scene
+	// if the object is directly on the scene returns false
+	getRoot: function() {
+
+	  if (this.isRoot()) {
+	    return false;
+	  }
+
+	  var parent = this.parent;
+
+	  // get to the root element directly on scene
+	  while (parent !== null && !parent.isRoot()) {
+	    parent = parent.parent;
+	  }
+
+	  return parent;
+
+	},
+
+	isRoot: function() {
+
+	  if (!this.parent) {
+	    return true;
+	  }
+
+	},
+
+	getScene: function() {
+
+		if (this.isRoot()) {
+			return this.parent;
+		} else {
+			return this.getRoot().parent;
+		}
 	},
 
 	setRotationFromAxisAngle: function ( axis, angle ) {
@@ -437,7 +487,7 @@ Object3D.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 
 	},
 
-	getWorldPosition: function ( target ) {
+/*	getWorldPosition: function ( optionalTarget ) {
 
 		if ( target === undefined ) {
 
@@ -449,6 +499,30 @@ Object3D.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 		this.updateMatrixWorld( true );
 
 		return target.setFromMatrixPosition( this.matrixWorld );
+
+	},*/
+
+	getWorldPosition: function ( optionalTarget ) {
+
+		if(this.parent === null) {
+			if(optionalTarget) {
+				return optionalTarget.copy(this.position);
+			}
+			return this.position.clone();
+		}
+
+		var result = optionalTarget || this.position.clone();
+
+		// var parent = this.parent;
+		// while (parent && !(parent instanceof THREE.Scene)) {
+		// 	result.add(parent.position);
+		// 	parent = parent.parent;
+		// }
+		// return result;
+
+		// back to normal getworldposition! but no updating children matrices!!!
+		this.updateMatrixWorldNoChildren( true );
+		return result.setFromMatrixPosition( this.matrixWorld );
 
 	},
 
@@ -624,6 +698,29 @@ Object3D.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 				children[ i ].updateWorldMatrix( false, true );
 
 			}
+
+		}
+
+	},
+
+	updateMatrixWorldNoChildren: function ( force ) {
+
+		if (this.matrixAutoUpdate === true) this.updateMatrix();
+
+		if (this.matrixWorldNeedsUpdate === true || force === true) {
+
+			if (this.parent === null ) { //  || this.parent instanceof THREE.Scene || this.parent instanceof THREE.VirtualScene) {
+
+				//this.matrixWorld.copy( this.matrix );
+				this.matrixWorld = this.matrix;
+
+			} else {
+
+				this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
+
+			}
+
+			this.matrixWorldNeedsUpdate = false;
 
 		}
 
@@ -841,7 +938,7 @@ Object3D.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 		this.frustumCulled = source.frustumCulled;
 		this.renderOrder = source.renderOrder;
 
-		this.userData = JSON.parse( JSON.stringify( source.userData ) );
+		this.userData = JSON.parse( JSON.stringify( source.userData || {} ) );
 
 		if ( recursive === true ) {
 

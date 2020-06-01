@@ -48,7 +48,7 @@ function Mesh( geometry, material ) {
 
 	this.geometry = geometry !== undefined ? geometry : new BufferGeometry();
 	this.material = material !== undefined ? material : new MeshBasicMaterial();
-
+	this.lod = [];
 	this.updateMorphTargets();
 
 }
@@ -62,7 +62,7 @@ Mesh.prototype = Object.assign( Object.create( Object3D.prototype ), {
 	copy: function ( source ) {
 
 		Object3D.prototype.copy.call( this, source );
-
+		this.lod = source.lod;
 		if ( source.morphTargetInfluences !== undefined ) {
 
 			this.morphTargetInfluences = source.morphTargetInfluences.slice();
@@ -367,12 +367,12 @@ function checkIntersection( object, material, raycaster, ray, pA, pB, pC, point 
 	_intersectionPointWorld.copy( point );
 	_intersectionPointWorld.applyMatrix4( object.matrixWorld );
 
-	var distance = raycaster.ray.origin.distanceTo( _intersectionPointWorld );
+	var distanceSq = raycaster.ray.origin.distanceToSquared( _intersectionPointWorld );
 
-	if ( distance < raycaster.near || distance > raycaster.far ) return null;
+	if ( distanceSq < (raycaster.near * raycaster.near) || distanceSq > (raycaster.far * raycaster.far) ) return null;
 
 	return {
-		distance: distance,
+		distanceSq: distanceSq,
 		point: _intersectionPointWorld.clone(),
 		object: object
 	};
@@ -468,5 +468,122 @@ function checkBufferGeometryIntersection( object, material, raycaster, ray, posi
 	return intersection;
 
 }
+// copy position, rotation and scale from source object
+Mesh.prototype.copyAllTransforms = function(source) {
+
+	this.position.copy(source.position);
+	this.rotation.copy(source.rotation);
+	this.scale.copy(source.scale);
+	this.updateMatrix();
+	this.updateMatrixWorldNoChildren();
+
+};
+
+Mesh.prototype.getScene = function() {
+
+	if (this.isRoot()) {
+		return this.parent;
+	} else {
+		return this.getRoot().parent;
+	}
+
+};
+
+
+Mesh.prototype.prepareForSend = function() {
+
+	var root = null;
+
+	if (!this.isRoot()) {
+		var rootEl = this.getRoot();
+
+		root = {
+			position: rootEl.position.toArray(),
+			quaternion: rootEl.quaternion.toArray(),
+			scale: rootEl.scale.toArray(),
+			name: rootEl.name
+		};
+	}
+
+	var sendData = {
+		uuid: this.uuid,
+		modelClass: this.modelClass,
+		position: this.position.toArray(),
+		quaternion: this.quaternion.toArray(),
+		scale: this.scale.toArray(),
+		name: this.name
+	};
+
+	if (root) {
+		sendData.root = root;
+	}
+
+	return sendData;
+
+};
+
+// quick check before proper raycasting
+Mesh.prototype.raycastSphereOnly = (function() {
+
+	var sphere = new Sphere();
+
+	return function(raycaster, intersects) {
+
+		var geometry = this.geometry;
+
+		// Checking boundingSphere distance to ray
+
+		if (geometry.boundingSphere === null) geometry.computeBoundingSphere(this.scale);
+
+		sphere.copy(geometry.boundingSphere);
+		sphere.applyMatrix4(this.matrixWorld);
+
+		return raycaster.ray.intersectsSphere(sphere);
+
+	};
+})();
+
+Mesh.prototype.raycastBBoxOnly = (function() {
+	var ray = new Ray();
+	var inverseMatrix = new Matrix4();
+	var tempPoint = new Vector3();
+
+	return function raycastBBoxOnly(raycaster, predefinedTarget) {
+		var target = predefinedTarget || new Vector3();
+		var geometry = this.geometry;
+		var maxDistSq = raycaster.far * raycaster.far;
+		// Checking boundingSphere distance to ray
+
+		if (geometry.boundingSphere === null) geometry.computeBoundingSphere(this.scale);
+
+		// optimization to getWorldPosition is only faster if getWorldPosition is also optimized!
+		var sphereDistSq = raycaster.ray.distanceSqToPoint( this.getWorldPosition( tempPoint ) ) - geometry.boundingSphere.radius * geometry.boundingSphere.radius;
+
+		if ( sphereDistSq > 0 && sphereDistSq > maxDistSq ) {
+			return;
+		}
+
+		// Check boundingBox before continuing
+		inverseMatrix.getInverse( this.matrixWorld );
+		ray.copy( raycaster.ray ).applyMatrix4( inverseMatrix );
+
+		if ( geometry.boundingBox === null ) {
+			geometry.computeBoundingBox();
+		}
+		var boxIntersect = ray.intersectBox( geometry.boundingBox, target );
+		if (boxIntersect === null) {
+			return;
+		}
+		var boxDistSq = ray.origin.distanceToSquared( boxIntersect );
+
+		if ( boxDistSq > maxDistSq && !geometry.boundingBox.containsPoint(ray.origin) ) {
+			return;
+		}
+
+		boxIntersect.distanceSq = boxDistSq;
+
+		return boxIntersect;
+	};
+})();
 
 export { Mesh };

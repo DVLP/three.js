@@ -901,7 +901,26 @@ function WebGLState( gl, extensions, capabilities ) {
 
 		try {
 
+			// console.log('texImage2D', arguments);
+
 			gl.texImage2D.apply( gl, arguments );
+
+
+			 // const level = 0;
+		  // const internalFormat = gl.LUMINANCE;
+		  // const width = 3;
+		  // const height = 2;
+		  // const border = 0;
+		  // const format = gl.LUMINANCE;
+		  // const type = gl.UNSIGNED_BYTE;
+		  // const data = new Uint8Array([
+		  //   128,  64, 128,
+		  //     0, 192,   0,
+		  // ]);
+		  // const alignment = 1;
+		  // gl.pixelStorei(gl.UNPACK_ALIGNMENT, alignment);
+		  // gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border,
+		  //               format, type, data);
 
 		} catch ( error ) {
 

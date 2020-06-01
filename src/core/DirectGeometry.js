@@ -15,6 +15,7 @@ function DirectGeometry() {
 	this.groups = [];
 
 	this.morphTargets = {};
+	this.morphTargetsMap = null;
 
 	this.skinWeights = [];
 	this.skinIndices = [];

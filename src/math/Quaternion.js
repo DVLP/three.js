@@ -7,6 +7,24 @@
 
 import { MathUtils } from './MathUtils.js';
 
+var opmu = 1.90110745351730037;
+var u = new Float32Array( 8 );
+var v = new Float32Array( 8 );
+var bT = new Float32Array( 8 );
+var bD = new Float32Array( 8 );
+
+for ( var i = 0; i < 7; ++ i ) {
+
+	var s = i + 1.0;
+	var t = 2.0 * s + 1.0;
+	u[ i ] = 1.0 / ( s * t );
+	v[ i ] = s / t;
+
+}
+
+u[ 7 ] = opmu / ( 8.0 * 17.0 );
+v[ 7 ] = opmu * 8.0 / 17.0;
+
 function Quaternion( x, y, z, w ) {
 
 	this._x = x || 0;
@@ -606,6 +624,54 @@ Object.assign( Quaternion.prototype, {
 		this._z = ( z * ratioA + this._z * ratioB );
 
 		this._onChangeCallback();
+
+		return this;
+
+	},
+
+	// fast slerp without trignometry functions https://cesium.com/blog/2014/01/09/a-fast-algorithm-for-computing-slerp/
+	fastSlerp: function ( end, t ) {
+
+		var x = this.dot( end );
+
+		var sign;
+		if ( x >= 0 ) {
+
+			sign = 1.0;
+
+		} else {
+
+			sign = - 1.0;
+			x = - x;
+
+		}
+
+		var xm1 = x - 1.0;
+		var d = 1.0 - t;
+		var sqrT = t * t;
+		var sqrD = d * d;
+
+		for ( var i = 7; i >= 0; -- i ) {
+
+			bT[ i ] = ( u[ i ] * sqrT - v[ i ] ) * xm1;
+			bD[ i ] = ( u[ i ] * sqrD - v[ i ] ) * xm1;
+
+		}
+
+		var cT = sign * t * (
+			1.0 + bT[ 0 ] * ( 1.0 + bT[ 1 ] * ( 1.0 + bT[ 2 ] * ( 1.0 + bT[ 3 ] * (
+				1.0 + bT[ 4 ] * ( 1.0 + bT[ 5 ] * ( 1.0 + bT[ 6 ] * ( 1.0 + bT[ 7 ] ) ) ) ) ) ) ) );
+		var cD = d * (
+			1.0 + bD[ 0 ] * ( 1.0 + bD[ 1 ] * ( 1.0 + bD[ 2 ] * ( 1.0 + bD[ 3 ] * (
+				1.0 + bD[ 4 ] * ( 1.0 + bD[ 5 ] * ( 1.0 + bD[ 6 ] * ( 1.0 + bD[ 7 ] ) ) ) ) ) ) ) );
+
+		// Quaternion.multiplyByScalar( start, cD, fastSlerpScratchQuaternion );
+		// Quaternion.multiplyByScalar( end, cT, result );
+		// Quaternion.add( temp, result, result )
+		this._x = end._x * cT + this._x * cD;
+		this._y = end._y * cT + this._y * cD;
+		this._z = end._z * cT + this._z * cD;
+		this._w = end._w * cT + this._w * cD;
 
 		return this;
 

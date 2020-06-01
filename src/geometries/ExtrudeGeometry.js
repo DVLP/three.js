@@ -28,6 +28,7 @@ import { Float32BufferAttribute } from '../core/BufferAttribute.js';
 import { Vector2 } from '../math/Vector2.js';
 import { Vector3 } from '../math/Vector3.js';
 import { ShapeUtils } from '../extras/ShapeUtils.js';
+import { FrontSide, BackSide, DoubleSide } from '../constants.js';
 
 // ExtrudeGeometry
 
@@ -108,6 +109,7 @@ function ExtrudeBufferGeometry( shapes, options ) {
 		var depth = options.depth !== undefined ? options.depth : 100;
 
 		var bevelEnabled = options.bevelEnabled !== undefined ? options.bevelEnabled : true;
+		var bevelSide = options.bevelSide !== undefined ? options.bevelSide : DoubleSide;
 		var bevelThickness = options.bevelThickness !== undefined ? options.bevelThickness : 6;
 		var bevelSize = options.bevelSize !== undefined ? options.bevelSize : bevelThickness - 2;
 		var bevelOffset = options.bevelOffset !== undefined ? options.bevelOffset : 0;
@@ -389,77 +391,53 @@ function ExtrudeBufferGeometry( shapes, options ) {
 
 
 		// Loop bevelSegments, 1 for the front, 1 for the back
+		if ( bevelSide === FrontSide || bevelSide === DoubleSide ) {
 
-		for ( b = 0; b < bevelSegments; b ++ ) {
+			for ( b = 0; b < bevelSegments; b ++ ) {
 
-			//for ( b = bevelSegments; b > 0; b -- ) {
+				//for ( b = bevelSegments; b > 0; b -- ) {
 
-			t = b / bevelSegments;
-			z = bevelThickness * Math.cos( t * Math.PI / 2 );
-			bs = bevelSize * Math.sin( t * Math.PI / 2 ) + bevelOffset;
+				t = b / bevelSegments;
+				z = bevelThickness * Math.cos( t * Math.PI / 2 );
+				bs = bevelSize * Math.sin( t * Math.PI / 2 ) + bevelOffset;
 
-			// contract shape
+				// contract shape
 
-			for ( i = 0, il = contour.length; i < il; i ++ ) {
+				for ( i = 0, il = contour.length; i < il; i ++ ) {
 
-				vert = scalePt2( contour[ i ], contourMovements[ i ], bs );
-
-				v( vert.x, vert.y, - z );
-
-			}
-
-			// expand holes
-
-			for ( h = 0, hl = holes.length; h < hl; h ++ ) {
-
-				ahole = holes[ h ];
-				oneHoleMovements = holesMovements[ h ];
-
-				for ( i = 0, il = ahole.length; i < il; i ++ ) {
-
-					vert = scalePt2( ahole[ i ], oneHoleMovements[ i ], bs );
+					vert = scalePt2( contour[ i ], contourMovements[ i ], bs );
 
 					v( vert.x, vert.y, - z );
 
 				}
 
+				// expand holes
+
+				for ( h = 0, hl = holes.length; h < hl; h ++ ) {
+
+					ahole = holes[ h ];
+					oneHoleMovements = holesMovements[ h ];
+
+					for ( i = 0, il = ahole.length; i < il; i ++ ) {
+
+						vert = scalePt2( ahole[ i ], oneHoleMovements[ i ], bs );
+
+						v( vert.x, vert.y, - z );
+
+					}
+
+				}
+
 			}
+
+			bs = bevelSize;
 
 		}
 
 		bs = bevelSize + bevelOffset;
+		if ( bevelSide === BackSide || bevelSide === DoubleSide ) {
 
-		// Back facing vertices
-
-		for ( i = 0; i < vlen; i ++ ) {
-
-			vert = bevelEnabled ? scalePt2( vertices[ i ], verticesMovements[ i ], bs ) : vertices[ i ];
-
-			if ( ! extrudeByPath ) {
-
-				v( vert.x, vert.y, 0 );
-
-			} else {
-
-				// v( vert.x, vert.y + extrudePts[ 0 ].y, extrudePts[ 0 ].x );
-
-				normal.copy( splineTube.normals[ 0 ] ).multiplyScalar( vert.x );
-				binormal.copy( splineTube.binormals[ 0 ] ).multiplyScalar( vert.y );
-
-				position2.copy( extrudePts[ 0 ] ).add( normal ).add( binormal );
-
-				v( position2.x, position2.y, position2.z );
-
-			}
-
-		}
-
-		// Add stepped vertices...
-		// Including front facing vertices
-
-		var s;
-
-		for ( s = 1; s <= steps; s ++ ) {
+			// Back facing vertices
 
 			for ( i = 0; i < vlen; i ++ ) {
 
@@ -467,16 +445,16 @@ function ExtrudeBufferGeometry( shapes, options ) {
 
 				if ( ! extrudeByPath ) {
 
-					v( vert.x, vert.y, depth / steps * s );
+					v( vert.x, vert.y, 0 );
 
 				} else {
 
-					// v( vert.x, vert.y + extrudePts[ s - 1 ].y, extrudePts[ s - 1 ].x );
+					// v( vert.x, vert.y + extrudePts[ 0 ].y, extrudePts[ 0 ].x );
 
-					normal.copy( splineTube.normals[ s ] ).multiplyScalar( vert.x );
-					binormal.copy( splineTube.binormals[ s ] ).multiplyScalar( vert.y );
+					normal.copy( splineTube.normals[ 0 ] ).multiplyScalar( vert.x );
+					binormal.copy( splineTube.binormals[ 0 ] ).multiplyScalar( vert.y );
 
-					position2.copy( extrudePts[ s ] ).add( normal ).add( binormal );
+					position2.copy( extrudePts[ 0 ] ).add( normal ).add( binormal );
 
 					v( position2.x, position2.y, position2.z );
 
@@ -486,43 +464,80 @@ function ExtrudeBufferGeometry( shapes, options ) {
 
 		}
 
+		// Add stepped vertices...
+		// Including front facing vertices
+		if ( bevelSide === FrontSide || bevelSide === DoubleSide ) {
 
-		// Add bevel segments planes
+			var s;
 
-		//for ( b = 1; b <= bevelSegments; b ++ ) {
-		for ( b = bevelSegments - 1; b >= 0; b -- ) {
+			for ( s = 1; s <= steps; s ++ ) {
+
+				for ( i = 0; i < vlen; i ++ ) {
+
+					vert = bevelEnabled ? scalePt2( vertices[ i ], verticesMovements[ i ], bs ) : vertices[ i ];
+
+					if ( ! extrudeByPath ) {
+
+					v( vert.x, vert.y, depth / steps * s );
+
+					} else {
+
+						// v( vert.x, vert.y + extrudePts[ s - 1 ].y, extrudePts[ s - 1 ].x );
+
+						normal.copy( splineTube.normals[ s ] ).multiplyScalar( vert.x );
+						binormal.copy( splineTube.binormals[ s ] ).multiplyScalar( vert.y );
+
+						position2.copy( extrudePts[ s ] ).add( normal ).add( binormal );
+
+						v( position2.x, position2.y, position2.z );
+
+					}
+
+				}
+
+			}
+
+		}
+
+
+		// Add bevel segments planes - back
+		if ( bevelSide === BackSide || bevelSide === DoubleSide ) {
+
+			for ( b = bevelSegments - 1; b >= 0; b -- ) {
 
 			t = b / bevelSegments;
 			z = bevelThickness * Math.cos( t * Math.PI / 2 );
 			bs = bevelSize * Math.sin( t * Math.PI / 2 ) + bevelOffset;
 
-			// contract shape
+				// contract shape
 
-			for ( i = 0, il = contour.length; i < il; i ++ ) {
+				for ( i = 0, il = contour.length; i < il; i ++ ) {
 
 				vert = scalePt2( contour[ i ], contourMovements[ i ], bs );
 				v( vert.x, vert.y, depth + z );
 
-			}
+				}
 
-			// expand holes
+				// expand holes
 
-			for ( h = 0, hl = holes.length; h < hl; h ++ ) {
+				for ( h = 0, hl = holes.length; h < hl; h ++ ) {
 
-				ahole = holes[ h ];
-				oneHoleMovements = holesMovements[ h ];
+					ahole = holes[ h ];
+					oneHoleMovements = holesMovements[ h ];
 
-				for ( i = 0, il = ahole.length; i < il; i ++ ) {
+					for ( i = 0, il = ahole.length; i < il; i ++ ) {
 
-					vert = scalePt2( ahole[ i ], oneHoleMovements[ i ], bs );
+						vert = scalePt2( ahole[ i ], oneHoleMovements[ i ], bs );
 
-					if ( ! extrudeByPath ) {
+						if ( ! extrudeByPath ) {
 
 						v( vert.x, vert.y, depth + z );
 
-					} else {
+						} else {
 
-						v( vert.x, vert.y + extrudePts[ steps - 1 ].y, extrudePts[ steps - 1 ].x + z );
+							v( vert.x, vert.y + extrudePts[ steps - 1 ].y, extrudePts[ steps - 1 ].x + z );
+
+						}
 
 					}
 
@@ -555,43 +570,56 @@ function ExtrudeBufferGeometry( shapes, options ) {
 				var offset = vlen * layer;
 
 				// Bottom faces
+				if ( bevelSide === FrontSide || bevelSide === DoubleSide ) {
 
-				for ( i = 0; i < flen; i ++ ) {
+					for ( i = 0; i < flen; i ++ ) {
 
-					face = faces[ i ];
-					f3( face[ 2 ] + offset, face[ 1 ] + offset, face[ 0 ] + offset );
+						face = faces[ i ];
+						f3( face[ 2 ] + offset, face[ 1 ] + offset, face[ 0 ] + offset );
+
+					}
+
+					layer = steps + bevelSegments * ( bevelSide === DoubleSide ? 2 : 1 );
+					offset = vlen * layer;
 
 				}
 
-				layer = steps + bevelSegments * 2;
-				offset = vlen * layer;
-
 				// Top faces
+				if ( bevelSide === BackSide || bevelSide === DoubleSide ) {
 
-				for ( i = 0; i < flen; i ++ ) {
+					for ( i = 0; i < flen; i ++ ) {
 
-					face = faces[ i ];
-					f3( face[ 0 ] + offset, face[ 1 ] + offset, face[ 2 ] + offset );
+						face = faces[ i ];
+						f3( face[ 0 ] + offset, face[ 1 ] + offset, face[ 2 ] + offset );
+
+					}
 
 				}
 
 			} else {
 
 				// Bottom faces
+				if ( bevelSide === FrontSide || bevelSide === DoubleSide ) {
 
-				for ( i = 0; i < flen; i ++ ) {
+					for ( i = 0; i < flen; i ++ ) {
 
-					face = faces[ i ];
-					f3( face[ 2 ], face[ 1 ], face[ 0 ] );
+						face = faces[ i ];
+						f3( face[ 2 ], face[ 1 ], face[ 0 ] );
+
+					}
 
 				}
 
 				// Top faces
 
-				for ( i = 0; i < flen; i ++ ) {
+				if ( bevelSide === BackSide || bevelSide === DoubleSide ) {
 
-					face = faces[ i ];
-					f3( face[ 0 ] + vlen * steps, face[ 1 ] + vlen * steps, face[ 2 ] + vlen * steps );
+					for ( i = 0; i < flen; i ++ ) {
+
+						face = faces[ i ];
+						f3( face[ 0 ] + vlen * steps, face[ 1 ] + vlen * steps, face[ 2 ] + vlen * steps );
+
+					}
 
 				}
 
@@ -637,10 +665,8 @@ function ExtrudeBufferGeometry( shapes, options ) {
 				k = i - 1;
 				if ( k < 0 ) k = contour.length - 1;
 
-				//console.log('b', i,j, i-1, k,vertices.length);
-
 				var s = 0,
-					sl = steps + bevelSegments * 2;
+					sl = steps + bevelSegments * ( bevelSide === DoubleSide ? 2 : 1 );
 
 				for ( s = 0; s < sl; s ++ ) {
 

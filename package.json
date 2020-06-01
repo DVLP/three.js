@@ -1,7 +1,8 @@
 {
-  "name": "three",
+  "name": "dvlp-three",
   "version": "0.117.1",
   "description": "JavaScript 3D library",
+  "jsnext:main": "src/Three.Module.js",
   "main": "build/three.js",
   "module": "build/three.module.js",
   "types": "src/Three.d.ts",

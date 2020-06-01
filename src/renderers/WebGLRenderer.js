@@ -22,8 +22,6 @@ import { UniformsLib } from './shaders/UniformsLib.js';
 import { Vector2 } from '../math/Vector2.js';
 import { Vector3 } from '../math/Vector3.js';
 import { Vector4 } from '../math/Vector4.js';
-import { Scene } from '../scenes/Scene.js';
-import { WebGLAnimation } from './webgl/WebGLAnimation.js';
 import { WebGLAttributes } from './webgl/WebGLAttributes.js';
 import { WebGLBackground } from './webgl/WebGLBackground.js';
 import { WebGLBufferRenderer } from './webgl/WebGLBufferRenderer.js';
@@ -33,6 +31,7 @@ import { WebGLExtensions } from './webgl/WebGLExtensions.js';
 import { WebGLGeometries } from './webgl/WebGLGeometries.js';
 import { WebGLIndexedBufferRenderer } from './webgl/WebGLIndexedBufferRenderer.js';
 import { WebGLInfo } from './webgl/WebGLInfo.js';
+import { WebGLMaterials } from './webgl/WebGLMaterials.js';
 import { WebGLMorphtargets } from './webgl/WebGLMorphtargets.js';
 import { WebGLObjects } from './webgl/WebGLObjects.js';
 import { WebGLPrograms } from './webgl/WebGLPrograms.js';
@@ -44,8 +43,14 @@ import { WebGLState } from './webgl/WebGLState.js';
 import { WebGLTextures } from './webgl/WebGLTextures.js';
 import { WebGLUniforms } from './webgl/WebGLUniforms.js';
 import { WebGLUtils } from './webgl/WebGLUtils.js';
-import { WebXRManager } from './webxr/WebXRManager.js';
-import { WebGLMaterials } from "./webgl/WebGLMaterials.js";
+
+/**
+ * @author supereggbert / http://www.paulbrunt.co.uk/
+ * @author mrdoob / http://mrdoob.com/
+ * @author alteredq / http://alteredqualia.com/
+ * @author szimek / https://github.com/szimek/
+ * @author tschw
+ */
 
 function WebGLRenderer( parameters ) {
 
@@ -118,6 +123,8 @@ function WebGLRenderer( parameters ) {
 
 	// internal properties
 
+	var _defaultScene = null;
+
 	var _this = this,
 
 		_isContextLost = false,
@@ -185,6 +192,7 @@ function WebGLRenderer( parameters ) {
 	// initialize
 
 	var _gl;
+	var _isWorker = self.document === undefined;
 
 	try {
 
@@ -292,6 +300,7 @@ function WebGLRenderer( parameters ) {
 
 		info.programs = programCache.programs;
 
+		_context = _gl;
 		_this.capabilities = capabilities;
 		_this.extensions = extensions;
 		_this.properties = properties;
@@ -303,11 +312,11 @@ function WebGLRenderer( parameters ) {
 
 	initGLContext();
 
-	// xr
+	// vr
 
-	var xr = new WebXRManager( _this, _gl );
+	// var vr = new WebVRManager( _this );
 
-	this.xr = xr;
+	// this.vr = vr;
 
 	// shadow map
 
@@ -359,28 +368,25 @@ function WebGLRenderer( parameters ) {
 
 	};
 
-	this.getSize = function ( target ) {
+	this.getSize = function () {
 
-		if ( target === undefined ) {
-
-			console.warn( 'WebGLRenderer: .getsize() now requires a Vector2 as an argument' );
-
-			target = new Vector2();
-
-		}
-
-		return target.set( _width, _height );
+		return {
+			width: _width,
+			height: _height
+		};
 
 	};
 
 	this.setSize = function ( width, height, updateStyle ) {
 
-		if ( xr.isPresenting ) {
+		// if ( xr.isPresenting ) {
 
-			console.warn( 'THREE.WebGLRenderer: Can\'t change size while VR device is presenting.' );
-			return;
+		// if ( device && device.isPresenting ) {
 
-		}
+		// 	console.warn( 'THREE.WebGLRenderer: Can\'t change size while VR device is presenting.' );
+		// 	return;
+
+		// }
 
 		_width = width;
 		_height = height;
@@ -577,9 +583,9 @@ function WebGLRenderer( parameters ) {
 		properties.dispose();
 		objects.dispose();
 
-		xr.dispose();
+		// xr.dispose();
 
-		animation.stop();
+		// stopAnimation();
 
 	};
 
@@ -713,11 +719,9 @@ function WebGLRenderer( parameters ) {
 
 	};
 
-	var tempScene = new Scene();
+	this.renderingErrors = 0;
 
 	this.renderBufferDirect = function ( camera, scene, geometry, material, object, group ) {
-
-		if ( scene === null ) scene = tempScene; // renderBufferDirect second parameter used to be fog (could be null)
 
 		var frontFaceCW = ( object.isMesh && object.matrixWorld.determinant() < 0 );
 
@@ -785,7 +789,16 @@ function WebGLRenderer( parameters ) {
 
 		if ( index !== null ) {
 
-			attribute = attributes.get( index );
+			if(!(attribute = attributes.get( index ))) {
+				if (this.renderingErrors <= 10) {
+					this.renderingErrors++;
+					console.error('Error when trying to render object: ' + object.name);
+					if (this.renderingErrors === 10) {
+						console.error('The above error happened 10 times already. Not showing anymore.');
+					}
+				}
+				return false;
+			}
 
 			renderer = indexedBufferRenderer;
 			renderer.setIndex( attribute );
@@ -868,11 +881,7 @@ function WebGLRenderer( parameters ) {
 
 		}
 
-		if ( object.isInstancedMesh ) {
-
-			renderer.renderInstances( geometry, drawStart, drawCount, object.count );
-
-		} else if ( geometry.isInstancedBufferGeometry ) {
+		if ( geometry && geometry.isInstancedBufferGeometry ) {
 
 			var instanceCount = Math.min( geometry.instanceCount, geometry._maxInstanceCount );
 
@@ -898,13 +907,9 @@ function WebGLRenderer( parameters ) {
 
 		var geometryAttributes = geometry.attributes;
 
-		var programAttributes = program.getAttributes();
-
 		var materialDefaultAttributeValues = material.defaultAttributeValues;
 
-		for ( var name in programAttributes ) {
-
-			var programAttribute = programAttributes[ name ];
+		program.getAttributesMap().forEach(function (programAttribute, name) {
 
 			if ( programAttribute >= 0 ) {
 
@@ -919,7 +924,7 @@ function WebGLRenderer( parameters ) {
 
 					// TODO Attribute may not be available on context restore
 
-					if ( attribute === undefined ) continue;
+					if ( attribute === undefined ) return;
 
 					var buffer = attribute.buffer;
 					var type = attribute.type;
@@ -979,7 +984,7 @@ function WebGLRenderer( parameters ) {
 
 					// TODO Attribute may not be available on context restore
 
-					if ( attribute === undefined ) continue;
+					if ( attribute === undefined ) return;
 
 					var buffer = attribute.buffer;
 					var type = attribute.type;
@@ -1027,7 +1032,7 @@ function WebGLRenderer( parameters ) {
 
 			}
 
-		}
+		});
 
 		state.disableUnusedAttributes();
 
@@ -1094,35 +1099,11 @@ function WebGLRenderer( parameters ) {
 
 	};
 
-	// Animation Loop
-
-	var onAnimationFrameCallback = null;
-
-	function onAnimationFrame( time ) {
-
-		if ( xr.isPresenting ) return;
-		if ( onAnimationFrameCallback ) onAnimationFrameCallback( time );
-
-	}
-
-	var animation = new WebGLAnimation();
-	animation.setAnimationLoop( onAnimationFrame );
-
-	if ( typeof window !== 'undefined' ) animation.setContext( window );
-
-	this.setAnimationLoop = function ( callback ) {
-
-		onAnimationFrameCallback = callback;
-		xr.setAnimationLoop( callback );
-
-		animation.start();
-
-	};
-
 	// Rendering
 
 	this.render = function ( scene, camera ) {
 
+		_defaultScene = scene;
 		var renderTarget, forceClear;
 
 		if ( arguments[ 2 ] !== undefined ) {
@@ -1158,25 +1139,25 @@ function WebGLRenderer( parameters ) {
 
 		// update scene graph
 
-		if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
+		// if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
 
 		// update camera matrices and frustum
 
-		if ( camera.parent === null ) camera.updateMatrixWorld();
+		// if ( camera.parent === null ) camera.updateMatrixWorld();
 
-		if ( xr.enabled && xr.isPresenting ) {
+		// if ( xr.enabled && xr.isPresenting ) {
 
-			camera = xr.getCamera( camera );
+		// 	camera = xr.getCamera( camera );
 
-		}
+		// }
 
 		//
-		scene.onBeforeRender( _this, scene, camera, renderTarget || _currentRenderTarget );
+		// scene.onBeforeRender( _this, scene, camera, renderTarget || _currentRenderTarget );
 
 		currentRenderState = renderStates.get( scene, camera );
 		currentRenderState.init();
 
-		_projScreenMatrix.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
+		_projScreenMatrix.multiplyMatricesIncludingBottomRow( camera.projectionMatrix, camera.matrixWorldInverse );
 		_frustum.setFromProjectionMatrix( _projScreenMatrix );
 
 		_localClippingEnabled = this.localClippingEnabled;
@@ -1185,7 +1166,16 @@ function WebGLRenderer( parameters ) {
 		currentRenderList = renderLists.get( scene, camera );
 		currentRenderList.init();
 
-		projectObject( scene, camera, 0, _this.sortObjects );
+		// projectObject( scene, camera, _this.sortObjects );
+		var children = scene.children;
+		for ( var i = 0, l = children.length; i < l; i ++ ) {
+			projectObject( children[ i ], camera, 0, _this.sortObjects, false );
+		}
+
+		// Objects which are hacked into scene will be skipped in above loop i.e. if they are children
+		for(var j = 0, jl = scene.hackedIntoScene.length; j < jl; j++){
+			projectObject( scene.hackedIntoScene[j], camera, 0, _this.sortObjects, true );
+		}
 
 		currentRenderList.finish();
 
@@ -1211,15 +1201,18 @@ function WebGLRenderer( parameters ) {
 
 		if ( this.info.autoReset ) this.info.reset();
 
-		if ( renderTarget !== undefined ) {
+		if ( renderTarget === undefined ) {
 
-			this.setRenderTarget( renderTarget );
+			renderTarget = null;
 
 		}
 
+		// lack of this makes screen black?
+		// this.setRenderTarget( renderTarget );
+
 		//
 
-		background.render( currentRenderList, scene, camera, forceClear );
+		// background.render( currentRenderList, scene, camera, forceClear );
 
 		// render scene
 
@@ -1247,7 +1240,7 @@ function WebGLRenderer( parameters ) {
 
 		//
 
-		scene.onAfterRender( _this, scene, camera );
+		// scene.onAfterRender( _this, scene, camera );
 
 		//
 
@@ -1271,6 +1264,8 @@ function WebGLRenderer( parameters ) {
 
 		state.setPolygonOffset( false );
 
+		// for workers only
+		_isWorker && _gl.commit();
 		// _gl.finish();
 
 		currentRenderList = null;
@@ -1278,9 +1273,94 @@ function WebGLRenderer( parameters ) {
 
 	};
 
-	function projectObject( object, camera, groupOrder, sortObjects ) {
+	function forceProjectObject (object, camera, groupOrder, sortObjects) {
+		if ( object.isLight ) {
 
-		if ( object.visible === false ) return;
+			currentRenderState.pushLight( object );
+
+			if ( object.castShadow ) {
+
+				currentRenderState.pushShadow( object );
+
+			}
+
+		} else if ( object.isSprite ) {
+
+			object.inFrustum = true;
+
+			currentRenderState.pushSprite( object );
+
+		} else if ( object.isImmediateRenderObject ) {
+
+			if ( sortObjects ) {
+
+				_vector3.setFromMatrixPosition( object.matrixWorld )
+					.applyMatrix4( _projScreenMatrix );
+
+			}
+
+			currentRenderList.push( object, null, object.material, groupOrder, _vector3.z, null );
+
+		} else if ( object.isMesh || object.isLine || object.isPoints ) {
+
+			if ( object.isSkinnedMesh ) {
+
+				object.skeleton.update();
+
+			}
+
+			object.inFrustum = true;
+
+			if ( sortObjects ) {
+
+				_vector3.setFromMatrixPosition( object.matrixWorld )
+					.applyMatrix4( _projScreenMatrix );
+
+			}
+
+			var geometry = objects.update( object );
+			var material = object.material;
+
+			if ( Array.isArray( material ) ) {
+
+				var groups = geometry.groups;
+
+				for ( var i = 0, l = groups.length; i < l; i ++ ) {
+
+					var group = groups[ i ];
+					var groupMaterial = material[ group.materialIndex ];
+
+					if ( groupMaterial && groupMaterial.visible ) {
+
+						currentRenderList.push( object, geometry, groupMaterial, groupOrder, _vector3.z, group );
+
+					}
+
+				}
+
+			} else if ( material.visible && material.opacity !== 0 ) {
+
+				currentRenderList.push( object, geometry, material, groupOrder, _vector3.z, null );
+
+			}
+
+		}
+
+		object.updated = false;
+
+		var children = object.children;
+
+		for ( var i = 0, l = children.length; i < l; i ++ ) {
+
+			forceProjectObject( children[ i ], camera, sortObjects );
+
+		}
+
+	}
+
+	function projectObject( object, camera, groupOrder, sortObjects, hackedIntoScene ) {
+
+		if ( object.visible === false || (!hackedIntoScene && object.hackedIntoScene) ) return;
 
 		var visible = object.layers.test( camera.layers );
 
@@ -1306,8 +1386,9 @@ function WebGLRenderer( parameters ) {
 
 			} else if ( object.isSprite ) {
 
-				if ( ! object.frustumCulled || _frustum.intersectsSprite( object ) ) {
+				if ( ! object.frustumCulled || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
 
+					object.inFrustum = true;
 					if ( sortObjects ) {
 
 						_vector3.setFromMatrixPosition( object.matrixWorld )
@@ -1352,7 +1433,9 @@ function WebGLRenderer( parameters ) {
 
 				}
 
-				if ( ! object.frustumCulled || _frustum.intersectsObject( object ) ) {
+				// checking if object's parent is in frustum only is evil...
+				if ( ! object.frustumCulled || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
+					object.inFrustum = true;
 
 					if ( sortObjects ) {
 
@@ -1381,7 +1464,7 @@ function WebGLRenderer( parameters ) {
 
 						}
 
-					} else if ( material.visible ) {
+					} else if ( material.visible && material.opacity !== 0 ) {
 
 						currentRenderList.push( object, geometry, material, groupOrder, _vector3.z, null );
 
@@ -1391,6 +1474,13 @@ function WebGLRenderer( parameters ) {
 
 			}
 
+		}
+
+		object.updated = false;
+
+		// skip children of objects not in frustum but allow children on direct instances of Object3D
+		if( !object.inFrustum && object.type !== 'Object3D' ) { // and containers
+			return;
 		}
 
 		var children = object.children;
@@ -1466,7 +1556,7 @@ function WebGLRenderer( parameters ) {
 			_currentGeometryProgram.program = null;
 			_currentGeometryProgram.wireframe = false;
 
-			renderObjectImmediate( object, program );
+			renderObjectImmediate( object, program, material );
 
 		} else {
 
@@ -1623,6 +1713,8 @@ function WebGLRenderer( parameters ) {
 	function setProgram( camera, scene, material, object ) {
 
 		textures.resetTextureUnits();
+
+		scene = scene || _defaultScene;
 
 		var fog = scene.fog;
 		var environment = material.isMeshStandardMaterial ? scene.environment : null;
@@ -1815,6 +1907,7 @@ function WebGLRenderer( parameters ) {
 						boneMatrices.set( skeleton.boneMatrices ); // copy current values
 
 						var boneTexture = new DataTexture( boneMatrices, size, size, RGBAFormat, FloatType );
+						boneTexture.needsUpdate = true;
 
 						skeleton.boneMatrices = boneMatrices;
 						skeleton.boneTexture = boneTexture;

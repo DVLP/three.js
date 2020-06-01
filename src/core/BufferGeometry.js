@@ -1,4 +1,5 @@
 import { Vector3 } from '../math/Vector3.js';
+import { Vector4 } from '../math/Vector4.js';
 import { Box3 } from '../math/Box3.js';
 import { EventDispatcher } from './EventDispatcher.js';
 import { BufferAttribute, Float32BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute } from './BufferAttribute.js';
@@ -9,6 +10,14 @@ import { Matrix4 } from '../math/Matrix4.js';
 import { Matrix3 } from '../math/Matrix3.js';
 import { MathUtils } from '../math/MathUtils.js';
 import { arrayMax } from '../utils.js';
+
+function makeMap( object ) {
+
+	var map = new Map();
+	for(var key in object) { object.hasOwnProperty(key) && map.set(key, object[key]); }
+	return map;
+
+}
 
 /**
  * @author alteredq / http://alteredqualia.com/
@@ -35,9 +44,11 @@ function BufferGeometry() {
 
 	this.index = null;
 	this.attributes = {};
+	this.attributesMap = null;
 
 	this.morphAttributes = {};
 	this.morphTargetsRelative = false;
+	this.morphAttributesMap = null;
 
 	this.groups = [];
 
@@ -47,6 +58,7 @@ function BufferGeometry() {
 	this.drawRange = { start: 0, count: Infinity };
 
 	this.userData = {};
+	this.realPositionAttribute = null;
 
 }
 
@@ -496,10 +508,12 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 		// morphs
 
-		for ( var name in geometry.morphTargets ) {
+		if( !geometry.morphTargetsMap ) {
+			geometry.morphTargetsMap = makeMap( geometry.morphTargets );
+		}
 
+		geometry.morphTargetsMap.forEach(function (morphTargets, name) {
 			var array = [];
-			var morphTargets = geometry.morphTargets[ name ];
 
 			for ( var i = 0, l = morphTargets.length; i < l; i ++ ) {
 
@@ -513,8 +527,7 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 			}
 
 			this.morphAttributes[ name ] = array;
-
-		}
+		});
 
 		// skinning
 
@@ -550,7 +563,7 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 	},
 
-	computeBoundingBox: function () {
+	computeBoundingBox: function ( explicitExpensiveMode ) {
 
 		if ( this.boundingBox === null ) {
 
@@ -563,7 +576,16 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 		if ( position !== undefined ) {
 
-			this.boundingBox.setFromBufferAttribute( position );
+			if ( ! explicitExpensiveMode ) {
+
+				this.boundingBox.setFromBufferAttribute( position );
+
+			} else {
+
+				this.boundingBox.setFromBufferAttribute( this.realPositionAttribute );
+
+			}
+
 
 			// process morph attributes if present
 
@@ -705,6 +727,8 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 			}
 
+			return this.boundingSphere;
+
 		}
 
 	},
@@ -842,6 +866,42 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 		var attributes = this.attributes;
 
+		var orgCount = this.attributes.position.count;
+
+		var newIndex = [];//new Float32Array( this.index.count * 2 );
+
+		var indicesByVertex = [];
+
+		this.index.array.forEach( ( el, ind ) => {
+
+			if ( indicesByVertex[ el ] === undefined ) {
+
+				indicesByVertex[ el ] = [ ind ];
+
+			} else {
+
+				indicesByVertex[ el ].push( ind );
+
+			}
+
+		} );
+
+		var addonIndicesByVertex = [];
+
+		geometry.index.array.forEach( ( el, ind ) => {
+
+			if ( addonIndicesByVertex[ el ] === undefined ) {
+
+				addonIndicesByVertex[ el ] = [ ind ];
+
+			} else {
+
+				addonIndicesByVertex[ el ].push( ind );
+
+			}
+
+		} );
+
 		for ( var key in attributes ) {
 
 			if ( geometry.attributes[ key ] === undefined ) continue;
@@ -862,6 +922,70 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 			}
 
 		}
+
+		// rebuild index
+		this.groups.forEach( ( group, groupIndex ) => {
+
+			const groupStart = group.start;
+			const groupCount = group.count;
+			var addonGroup = geometry.groups.find( el2 => el2.materialIndex === group.materialIndex );
+			var addonStart = addonGroup.start;
+			var addonCount = addonGroup.count;
+
+			var mergedGroupStart = groupStart + addonStart;
+			var mergedGroupCount = groupCount + addonCount;
+
+			// traverse old group
+			for ( var u = 0; u < groupCount; u ++ ) {
+
+				var v = this.index.array[ groupStart + u ];
+
+				var vtf = indicesByVertex[ v ].length;
+				for ( var o = 0; o < vtf; o ++ ) {
+
+					var indiceIndex = indicesByVertex[ v ][ o ];
+					var relativeToStartIndex = indiceIndex - groupStart;
+					newIndex[ mergedGroupStart + relativeToStartIndex ] = v;
+
+					// only worked for identical copies
+					// newIndex[ indiceIndex + start + groupCount ] = v + orgCount;
+
+				}
+
+			}
+
+			// traverse addon group
+			for ( var u = 0; u < addonCount; u ++ ) {
+
+				var v = geometry.index.array[ addonStart + u ];
+
+				var vtf = addonIndicesByVertex[ v ].length;
+				for ( var o = 0; o < vtf; o ++ ) {
+
+					var indiceIndex = addonIndicesByVertex[ v ][ o ];
+					var relativeToStartIndex = indiceIndex - addonStart;
+					newIndex[ mergedGroupStart + groupCount + relativeToStartIndex ] = v + orgCount;
+
+				}
+
+			}
+
+		} );
+
+		var oldGroups = this.groups;
+		var mergedInGroups = geometry.groups;
+
+		this.clearGroups();
+
+		oldGroups.forEach( el => {
+
+			var mergedInGroup = mergedInGroups.find( el2 => el2.materialIndex === el.materialIndex );
+
+			this.addGroup( el.start + mergedInGroup.start, el.count + mergedInGroup.count, el.materialIndex );
+
+		} );
+
+		this.setIndex( newIndex );
 
 		return this;
 
@@ -885,27 +1009,49 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 	},
 
-	toNonIndexed: function () {
+	// toNonIndexed: function () {
 
-		function convertBufferAttribute( attribute, indices ) {
+	// 	function convertBufferAttribute( attribute, indices ) {
 
-			var array = attribute.array;
-			var itemSize = attribute.itemSize;
-			var normalized = attribute.normalized;
+	// 		var array = attribute.array;
+	// 		var itemSize = attribute.itemSize;
+	//      var normalized = attribute.normalized;
+	// 		var array2 = new array.constructor( indices.length * itemSize );
 
-			var array2 = new array.constructor( indices.length * itemSize );
+	// 		var index = 0, index2 = 0;
 
-			var index = 0, index2 = 0;
+	// 		for ( var i = 0, l = indices.length; i < l; i ++ ) {
 
-			for ( var i = 0, l = indices.length; i < l; i ++ ) {
+	// 			index = indices[ i ] * itemSize;
 
-				index = indices[ i ] * itemSize;
+	// 			for ( var j = 0; j < itemSize; j ++ ) {
 
-				for ( var j = 0; j < itemSize; j ++ ) {
+	// 				array2[ index2 ++ ] = array[ index ++ ];
 
-					array2[ index2 ++ ] = array[ index ++ ];
+	// 			}
 
-				}
+	// 		}
+
+	// 		return new BufferAttribute( array2, itemSize );
+
+	// 	}
+
+	toIndexed: function () {
+
+		let prec = 0;
+		let list = [];
+		let vertices = {};
+
+		function store( x, y, z, v ) {
+
+			const id = Math.floor( x * prec ) + '_' + Math.floor( y * prec ) + '_' + Math.floor( z * prec );
+
+			if ( vertices[ id ] === undefined ) {
+
+				vertices[ id ] = list.length;
+
+
+				list.push( v );
 
 			}
 
@@ -913,7 +1059,135 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 		}
 
-		//
+  		function indexBufferGeometry( src, dst ) {
+
+			const position = src.attributes.position.array;
+
+			const faceCount = ( position.length / 3 ) / 3;
+
+
+			const type = faceCount * 3 > 65536 ? Uint32Array : Uint16Array;
+
+			const indexArray = new type( faceCount * 3 );
+
+			for ( let i = 0, l = faceCount; i < l; i ++ ) {
+
+				const offset = i * 9;
+
+				indexArray[ i * 3 ] = store( position[ offset ], position[ offset + 1 ], position[ offset + 2 ], i * 3 );
+				indexArray[ i * 3 + 1 ] = store( position[ offset + 3 ], position[ offset + 4 ], position[ offset + 5 ], i * 3 + 1 );
+				indexArray[ i * 3 + 2 ] = store( position[ offset + 6 ], position[ offset + 7 ], position[ offset + 8 ], i * 3 + 2 );
+
+			}
+
+		  dst.index = new BufferAttribute( indexArray, 1 );
+
+		  const count = list.length;
+
+			for ( let key in src.attributes ) {
+
+				const src_attribute = src.attributes[ key ];
+				const dst_attribute = new BufferAttribute( new src_attribute.array.constructor( count * src_attribute.itemSize ), src_attribute.itemSize );
+
+				const dst_array = dst_attribute.array;
+				const src_array = src_attribute.array;
+
+				switch ( src_attribute.itemSize ) {
+
+					case 1:
+
+						for ( let i = 0, l = list.length; i < l; i ++ ) {
+
+						  dst_array[ i ] = src_array[ list[ i ] ];
+
+						}
+
+						break;
+					case 2:
+
+						for ( let i = 0, l = list.length; i < l; i ++ ) {
+
+							  const index = list[ i ] * 2;
+
+							  const offset = i * 2;
+
+							  dst_array[ offset ] = src_array[ index ];
+							  dst_array[ offset + 1 ] = src_array[ index + 1 ];
+
+						}
+
+						break;
+					case 3:
+
+						for ( let i = 0, l = list.length; i < l; i ++ ) {
+
+							  const index = list[ i ] * 3;
+
+							  const offset = i * 3;
+
+							  dst_array[ offset ] = src_array[ index ];
+							  dst_array[ offset + 1 ] = src_array[ index + 1 ];
+							  dst_array[ offset + 2 ] = src_array[ index + 2 ];
+
+						}
+
+						break;
+					case 4:
+
+						for ( let i = 0, l = list.length; i < l; i ++ ) {
+
+							  const index = list[ i ] * 4;
+
+							  const offset = i * 4;
+
+							  dst_array[ offset ] = src_array[ index ];
+							  dst_array[ offset + 1 ] = src_array[ index + 1 ];
+							  dst_array[ offset + 2 ] = src_array[ index + 2 ];
+							  dst_array[ offset + 3 ] = src_array[ index + 3 ];
+
+						}
+
+						break;
+
+				}
+
+				dst.attributes[ key ] = dst_attribute;
+
+			}
+
+
+		  dst.computeBoundingSphere();
+
+		  dst.computeBoundingBox();
+
+		  src.groups.forEach( group => {
+
+		  	dst.addGroup( group.start / 3, group.count / 3, group.materialIndex );
+
+		  } );
+
+		  // Release data
+
+		  vertices = {};
+		  list = [];
+
+  	}
+
+		return function ( precision ) {
+
+			prec = Math.pow( 10, precision || 6 );
+
+			const geometry = new BufferGeometry();
+
+			indexBufferGeometry( this, geometry );
+
+			return geometry;
+
+		};
+
+	}(),
+
+	toNonIndexed: function () {
 
 		if ( this.index === null ) {
 
@@ -1235,7 +1509,65 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 		this.dispatchEvent( { type: 'dispose' } );
 
-	}
+	},
+
+	expensiveCalculateVertices: ( function () {
+
+		var i, l;
+		var properties = [ 'x', 'y', 'z', 'w' ];
+		var temp2 = new Vector3(), skinIndex = new Vector4(), skinWeights = new Vector4();
+		var temp = new Vector3(), tempMatrix = new Matrix4(), properties = [ 'x', 'y', 'z', 'w' ];
+		var result = new Vector3();
+
+		return function expensiveCalculateVertices( meshRef ) {
+
+			const position = this.attributes.position;
+
+			if ( this.realPositionAttribute === null ) {
+
+				this.realPositionAttribute = position.clone();
+
+			}
+
+			for ( i = 0, l = this.index.count; i < l; i ++ ) {
+
+				var idx = this.index.getX( i );
+				var index4 = idx << 2;
+				var typedOffset = idx * position.itemSize;
+
+				skinIndex.fromArray( this.attributes.skinIndex.array, index4 );
+				skinWeights.fromArray( this.attributes.skinWeight.array, index4 );
+				temp.fromArray( position.array, typedOffset );
+				temp.applyMatrix4( meshRef.bindMatrix );
+				result.set( 0, 0, 0 );
+
+				for ( var j = 0; j < 4; j ++ ) {
+
+					var prop = properties[ j ];
+
+					var skinWeight = skinWeights[ prop ];
+					var boneIndex = skinIndex[ prop ];
+
+					if ( skinWeight != 0 ) {
+
+						tempMatrix.multiplyMatrices( meshRef.skeleton.bones[ boneIndex ].matrixWorld, meshRef.skeleton.boneInverses[ boneIndex ] );
+						result.add( temp2.copy( temp ).applyMatrix4( tempMatrix ).multiplyScalar( skinWeight ) );
+
+					}
+
+				}
+
+				result.applyMatrix4( meshRef.bindMatrixInverse );
+
+				this.realPositionAttribute.setX( idx, result.x );
+				this.realPositionAttribute.setY( idx, result.y );
+				this.realPositionAttribute.setZ( idx, result.z );
+
+			}
+
+		};
+
+	} )(),
 
 } );
 

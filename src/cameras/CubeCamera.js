@@ -66,10 +66,10 @@ function CubeCamera( near, far, renderTarget ) {
 
 		if ( this.parent === null ) this.updateMatrixWorld();
 
-		var currentXrEnabled = renderer.xr.enabled;
+		// var currentXrEnabled = renderer.xr.enabled;
 		var currentRenderTarget = renderer.getRenderTarget();
 
-		renderer.xr.enabled = false;
+		// renderer.xr.enabled = false;
 
 		var generateMipmaps = renderTarget.texture.generateMipmaps;
 
@@ -95,9 +95,9 @@ function CubeCamera( near, far, renderTarget ) {
 		renderer.setRenderTarget( renderTarget, 5 );
 		renderer.render( scene, cameraNZ );
 
-		renderer.setRenderTarget( currentRenderTarget );
+		// renderer.setRenderTarget( currentRenderTarget );
 
-		renderer.xr.enabled = currentXrEnabled;
+		// renderer.xr.enabled = currentXrEnabled;
 
 	};
 
@@ -107,13 +107,13 @@ function CubeCamera( near, far, renderTarget ) {
 
 		for ( var i = 0; i < 6; i ++ ) {
 
-			renderer.setRenderTarget( renderTarget, i );
+			// renderer.setRenderTarget( renderTarget, i );
 
 			renderer.clear( color, depth, stencil );
 
 		}
 
-		renderer.setRenderTarget( currentRenderTarget );
+		// renderer.setRenderTarget( currentRenderTarget );
 
 	};
 

@@ -13,6 +13,11 @@ function WebGLObjects( gl, geometries, attributes, info ) {
 		var geometry = object.geometry;
 		var buffergeometry = geometries.get( object, geometry );
 
+		if( object.updated ) return object.geometry;
+
+		object.updated = true;
+
+
 		// Update once per frame
 
 		if ( updateMap.get( buffergeometry ) !== frame ) {
