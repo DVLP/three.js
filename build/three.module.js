@@ -4943,8 +4943,6 @@ Object.assign( Matrix4.prototype, {
 		array[ offset + 12 ] = te[ 12 ];
 		array[ offset + 13 ] = te[ 13 ];
 		array[ offset + 14 ] = te[ 14 ];
-
-		// set only once
 		array[ offset + 15 ] = te[ 15 ];
 
 		return array;
@@ -25560,10 +25558,12 @@ function WebGLRenderer( parameters ) {
 	this.render = function ( scene, camera ) {
 
 		_defaultScene = scene;
+		var renderTarget;
 
 		if ( arguments[ 2 ] !== undefined ) {
 
 			console.warn( 'THREE.WebGLRenderer.render(): the renderTarget argument has been removed. Use .setRenderTarget() instead.' );
+			renderTarget = arguments[ 2 ];
 
 		}
 
@@ -25654,10 +25654,13 @@ function WebGLRenderer( parameters ) {
 
 		if ( this.info.autoReset ) this.info.reset();
 
-		// lack of this makes screen black?
-		// this.setRenderTarget( renderTarget );
+		if ( renderTarget === undefined ) {
 
-		//
+			renderTarget = null;
+
+		}
+
+		this.setRenderTarget( renderTarget );
 
 		// background.render( currentRenderList, scene, camera, forceClear );
 

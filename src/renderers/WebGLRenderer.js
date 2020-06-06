@@ -1207,10 +1207,7 @@ function WebGLRenderer( parameters ) {
 
 		}
 
-		// lack of this makes screen black?
-		// this.setRenderTarget( renderTarget );
-
-		//
+		this.setRenderTarget( renderTarget );
 
 		// background.render( currentRenderList, scene, camera, forceClear );
 

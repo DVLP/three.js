@@ -920,8 +920,6 @@ Object.assign( Matrix4.prototype, {
 		array[ offset + 12 ] = te[ 12 ];
 		array[ offset + 13 ] = te[ 13 ];
 		array[ offset + 14 ] = te[ 14 ];
-
-		// set only once
 		array[ offset + 15 ] = te[ 15 ];
 
 		return array;
