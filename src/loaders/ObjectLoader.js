@@ -178,6 +178,7 @@ ObjectLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 				var geometry;
 				var data = json[ i ];
 
+
 				switch ( data.type ) {
 
 					case 'PlaneGeometry':
@@ -418,10 +419,9 @@ ObjectLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 						break;
 
 					case 'Geometry':
-
 						console.error( 'THREE.ObjectLoader: Loading "Geometry" is not supported anymore.' );
 
-						break;
+						continue;
 
 					default:
 

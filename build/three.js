@@ -4934,24 +4934,24 @@
 			array[ offset ] = te[ 0 ];
 			array[ offset + 1 ] = te[ 1 ];
 			array[ offset + 2 ] = te[ 2 ];
-			// array[ offset + 3 ] = te[ 3 ];
+			array[ offset + 3 ] = te[ 3 ];
 
 			array[ offset + 4 ] = te[ 4 ];
 			array[ offset + 5 ] = te[ 5 ];
 			array[ offset + 6 ] = te[ 6 ];
-			// array[ offset + 7 ] = te[ 7 ];
+			array[ offset + 7 ] = te[ 7 ];
 
 			array[ offset + 8 ] = te[ 8 ];
 			array[ offset + 9 ] = te[ 9 ];
 			array[ offset + 10 ] = te[ 10 ];
-			// array[ offset + 11 ] = te[ 11 ];
+			array[ offset + 11 ] = te[ 11 ];
 
 			array[ offset + 12 ] = te[ 12 ];
 			array[ offset + 13 ] = te[ 13 ];
 			array[ offset + 14 ] = te[ 14 ];
 
 			// set only once
-			// array[ offset + 15 ] = te[ 15 ];
+			array[ offset + 15 ] = te[ 15 ];
 
 			return array;
 
@@ -5541,7 +5541,6 @@
 		  if (!this.parent) {
 		    return true;
 		  }
-		  console.log('NOT ROOT', this);
 
 		},
 
@@ -12246,7 +12245,6 @@
 		};
 
 		if (root) {
-			console.log('found root for', this, rootEl);
 			sendData.root = root;
 		}
 
@@ -14850,7 +14848,7 @@
 			renderer.setRenderTarget( renderTarget, 5 );
 			renderer.render( scene, cameraNZ );
 
-			// renderer.setRenderTarget( currentRenderTarget );
+			renderer.setRenderTarget( currentRenderTarget );
 
 			// renderer.xr.enabled = currentXrEnabled;
 
@@ -41119,6 +41117,7 @@
 					var geometry;
 					var data = json[ i ];
 
+
 					switch ( data.type ) {
 
 						case 'PlaneGeometry':
@@ -41359,10 +41358,9 @@
 							break;
 
 						case 'Geometry':
-
 							console.error( 'THREE.ObjectLoader: Loading "Geometry" is not supported anymore.' );
 
-							break;
+							continue;
 
 						default:
 

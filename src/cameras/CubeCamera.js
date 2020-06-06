@@ -95,7 +95,7 @@ function CubeCamera( near, far, renderTarget ) {
 		renderer.setRenderTarget( renderTarget, 5 );
 		renderer.render( scene, cameraNZ );
 
-		// renderer.setRenderTarget( currentRenderTarget );
+		renderer.setRenderTarget( currentRenderTarget );
 
 		// renderer.xr.enabled = currentXrEnabled;
 
