@@ -66,6 +66,12 @@ Geometry.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 
 	isGeometry: true,
 
+	applyMatrix4: function ( matrix ) {
+
+		return this.applyMatrix( matrix )
+
+	},
+
 	applyMatrix: function ( matrix ) {
 
 		var normalMatrix = new Matrix3().getNormalMatrix( matrix );

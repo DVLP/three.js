@@ -111,6 +111,12 @@ Object3D.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 	onBeforeRender: function () {},
 	onAfterRender: function () {},
 
+	applyMatrix4: function ( matrix ) {
+
+		this.applyMatrix( matrix )
+
+	},
+
 	applyMatrix: function ( matrix ) {
 
 		this.matrix.multiplyMatrices( matrix, this.matrix );

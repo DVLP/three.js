@@ -8030,6 +8030,12 @@
 		onBeforeRender: function () {},
 		onAfterRender: function () {},
 
+		applyMatrix4: function ( matrix ) {
+
+			this.applyMatrix( matrix );
+
+		},
+
 		applyMatrix: function ( matrix ) {
 
 			this.matrix.multiplyMatrices( matrix, this.matrix );
@@ -9414,6 +9420,12 @@
 		constructor: Geometry,
 
 		isGeometry: true,
+
+		applyMatrix4: function ( matrix ) {
+
+			return this.applyMatrix( matrix )
+
+		},
 
 		applyMatrix: function ( matrix ) {
 
@@ -11551,6 +11563,12 @@
 
 		},
 
+		setAttribute: function ( name, attribute ) {
+
+			return this.addAttribute( name, attribute );
+
+		},
+
 		addAttribute: function ( name, attribute ) {
 
 			if ( ! ( attribute && attribute.isBufferAttribute ) && ! ( attribute && attribute.isInterleavedBufferAttribute ) ) {
@@ -11614,6 +11632,12 @@
 
 			this.drawRange.start = start;
 			this.drawRange.count = count;
+
+		},
+
+		applyMatrix4: function ( matrix ) {
+
+			return this.applyMatrix( matrix )
 
 		},
 
