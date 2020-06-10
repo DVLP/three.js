@@ -11170,38 +11170,12 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 	},
 
-	// toNonIndexed: function () {
-
-	// 	function convertBufferAttribute( attribute, indices ) {
-
-	// 		var array = attribute.array;
-	// 		var itemSize = attribute.itemSize;
-	//      var normalized = attribute.normalized;
-	// 		var array2 = new array.constructor( indices.length * itemSize );
-
-	// 		var index = 0, index2 = 0;
-
-	// 		for ( var i = 0, l = indices.length; i < l; i ++ ) {
-
-	// 			index = indices[ i ] * itemSize;
-
-	// 			for ( var j = 0; j < itemSize; j ++ ) {
-
-	// 				array2[ index2 ++ ] = array[ index ++ ];
-
-	// 			}
-
-	// 		}
-
-	// 		return new BufferAttribute( array2, itemSize );
-
-	// 	}
-
 	toIndexed: function () {
 
 		let prec = 0;
 		let list = [];
 		let vertices = {};
+		let array2 = [];
 
 		function store( x, y, z, v ) {
 
@@ -11354,6 +11328,32 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 			console.warn( 'THREE.BufferGeometry.toNonIndexed(): Geometry is already non-indexed.' );
 			return this;
+
+		}
+
+		
+		function convertBufferAttribute( attribute, indices ) {
+
+			var array = attribute.array;
+			var itemSize = attribute.itemSize;
+	     var normalized = attribute.normalized;
+			var array2 = new array.constructor( indices.length * itemSize );
+
+			var index = 0, index2 = 0;
+
+			for ( var i = 0, l = indices.length; i < l; i ++ ) {
+
+				index = indices[ i ] * itemSize;
+
+				for ( var j = 0; j < itemSize; j ++ ) {
+
+					array2[ index2 ++ ] = array[ index ++ ];
+
+				}
+
+			}
+
+			return new BufferAttribute( array2, itemSize );
 
 		}
 
@@ -25553,6 +25553,8 @@ function WebGLRenderer( parameters ) {
 
 	};
 
+	let _shadowMapHasContents = false;
+
 	// Rendering
 
 	this.render = function ( scene, camera ) {
@@ -25638,18 +25640,35 @@ function WebGLRenderer( parameters ) {
 
 		}
 
-		//
+		if (!this.shadowsDisabled) {
 
-		if ( _clippingEnabled ) _clipping.beginShadows();
+			if ( _clippingEnabled ) _clipping.beginShadows();
 
-		var shadowsArray = currentRenderState.state.shadowsArray;
+			var shadowsArray = currentRenderState.state.shadowsArray;
 
-		shadowMap.render( shadowsArray, scene, camera );
+			shadowMap.render( shadowsArray, scene, camera );
 
-		currentRenderState.setupLights( camera );
+			currentRenderState.setupLights( camera );
 
-		if ( _clippingEnabled ) _clipping.endShadows();
+			if ( _clippingEnabled ) _clipping.endShadows();
 
+			_shadowMapHasContents = true;
+
+		} else {
+
+			if (_shadowMapHasContents) {
+
+				// clear shadow map once after shadows disabled
+				var shadowsArray = currentRenderState.state.shadowsArray;
+				shadowMap.render( shadowsArray,
+					{ children: scene.children.filter(mesh => !mesh.isSkinnedMesh && !mesh.isCar && !mesh.isCarWheels ) },
+					camera );
+				_shadowMapHasContents = false;
+
+			}
+			currentRenderState.setupLights( camera );
+
+		}
 		//
 
 		if ( this.info.autoReset ) this.info.reset();
@@ -40993,6 +41012,561 @@ var TYPED_ARRAYS = {
 
 /**
  * @author mrdoob / http://mrdoob.com/
+ * @author alteredq / http://alteredqualia.com/
+ */
+
+function JSONLoader( manager ) {
+
+	if ( typeof manager === 'boolean' ) {
+
+		console.warn( 'THREE.JSONLoader: showStatus parameter has been removed from constructor.' );
+		manager = undefined;
+
+	}
+
+	this.manager = ( manager !== undefined ) ? manager : DefaultLoadingManager;
+
+	this.withCredentials = false;
+
+}
+
+Object.assign( JSONLoader.prototype, {
+
+	load: function ( url, onLoad, onProgress, onError ) {
+
+		var scope = this;
+
+		var texturePath = this.texturePath && ( typeof this.texturePath === 'string' ) ? this.texturePath : LoaderUtils.extractUrlBase( url );
+
+		var loader = new FileLoader( this.manager );
+		loader.setWithCredentials( this.withCredentials );
+		loader.load( url, function ( text ) {
+
+			var json = JSON.parse( text );
+			var metadata = json.metadata;
+
+			if ( metadata !== undefined ) {
+
+				var type = metadata.type;
+
+				if ( type !== undefined ) {
+
+					if ( type.toLowerCase() === 'object' ) {
+
+						console.error( 'THREE.JSONLoader: ' + url + ' should be loaded with THREE.ObjectLoader instead.' );
+						return;
+
+					}
+
+				}
+
+			}
+
+			var object = scope.parse( json, texturePath );
+			onLoad( object.geometry, object.materials );
+
+		}, onProgress, onError );
+
+	},
+
+	setTexturePath: function ( value ) {
+
+		this.texturePath = value;
+
+	},
+
+	parse: ( function () {
+
+		function parseModel( json, geometry ) {
+
+			function isBitSet( value, position ) {
+
+				return value & ( 1 << position );
+
+			}
+
+			var i, j, fi,
+
+				offset, zLength,
+
+				colorIndex, normalIndex, uvIndex, materialIndex,
+
+				type,
+				isQuad,
+				hasMaterial,
+				hasFaceVertexUv,
+				hasFaceNormal, hasFaceVertexNormal,
+				hasFaceColor, hasFaceVertexColor,
+
+				vertex, face, faceA, faceB, hex, normal,
+
+				uvLayer, uv, u, v,
+
+				faces = json.faces,
+				vertices = json.vertices,
+				normals = json.normals,
+				colors = json.colors,
+
+				scale = json.scale,
+
+				nUvLayers = 0;
+
+
+			if ( json.uvs !== undefined ) {
+
+				// disregard empty arrays
+
+				for ( i = 0; i < json.uvs.length; i ++ ) {
+
+					if ( json.uvs[ i ].length ) nUvLayers ++;
+
+				}
+
+				for ( i = 0; i < nUvLayers; i ++ ) {
+
+					geometry.faceVertexUvs[ i ] = [];
+
+				}
+
+			}
+
+			offset = 0;
+			zLength = vertices.length;
+
+			while ( offset < zLength ) {
+
+				vertex = new Vector3();
+
+				vertex.x = vertices[ offset ++ ] * scale;
+				vertex.y = vertices[ offset ++ ] * scale;
+				vertex.z = vertices[ offset ++ ] * scale;
+
+				geometry.vertices.push( vertex );
+
+			}
+
+			offset = 0;
+			zLength = faces.length;
+
+			while ( offset < zLength ) {
+
+				type = faces[ offset ++ ];
+
+				isQuad = isBitSet( type, 0 );
+				hasMaterial = isBitSet( type, 1 );
+				hasFaceVertexUv = isBitSet( type, 3 );
+				hasFaceNormal = isBitSet( type, 4 );
+				hasFaceVertexNormal = isBitSet( type, 5 );
+				hasFaceColor = isBitSet( type, 6 );
+				hasFaceVertexColor = isBitSet( type, 7 );
+
+				// console.log("type", type, "bits", isQuad, hasMaterial, hasFaceVertexUv, hasFaceNormal, hasFaceVertexNormal, hasFaceColor, hasFaceVertexColor);
+
+				if ( isQuad ) {
+
+					faceA = new Face3();
+					faceA.a = faces[ offset ];
+					faceA.b = faces[ offset + 1 ];
+					faceA.c = faces[ offset + 3 ];
+
+					faceB = new Face3();
+					faceB.a = faces[ offset + 1 ];
+					faceB.b = faces[ offset + 2 ];
+					faceB.c = faces[ offset + 3 ];
+
+					offset += 4;
+
+					if ( hasMaterial ) {
+
+						materialIndex = faces[ offset ++ ];
+						faceA.materialIndex = materialIndex;
+						faceB.materialIndex = materialIndex;
+
+					}
+
+					// to get face <=> uv index correspondence
+
+					fi = geometry.faces.length;
+
+					if ( hasFaceVertexUv ) {
+
+						for ( i = 0; i < nUvLayers; i ++ ) {
+
+							uvLayer = json.uvs[ i ];
+
+							geometry.faceVertexUvs[ i ][ fi ] = [];
+							geometry.faceVertexUvs[ i ][ fi + 1 ] = [];
+
+							for ( j = 0; j < 4; j ++ ) {
+
+								uvIndex = faces[ offset ++ ];
+
+								u = uvLayer[ uvIndex * 2 ];
+								v = uvLayer[ uvIndex * 2 + 1 ];
+
+								uv = new Vector2( u, v );
+
+								if ( j !== 2 ) geometry.faceVertexUvs[ i ][ fi ].push( uv );
+								if ( j !== 0 ) geometry.faceVertexUvs[ i ][ fi + 1 ].push( uv );
+
+							}
+
+						}
+
+					}
+
+					if ( hasFaceNormal ) {
+
+						normalIndex = faces[ offset ++ ] * 3;
+
+						faceA.normal.set(
+							normals[ normalIndex ++ ],
+							normals[ normalIndex ++ ],
+							normals[ normalIndex ]
+						);
+
+						faceB.normal.copy( faceA.normal );
+
+					}
+
+					if ( hasFaceVertexNormal ) {
+
+						for ( i = 0; i < 4; i ++ ) {
+
+							normalIndex = faces[ offset ++ ] * 3;
+
+							normal = new Vector3(
+								normals[ normalIndex ++ ],
+								normals[ normalIndex ++ ],
+								normals[ normalIndex ]
+							);
+
+
+							if ( i !== 2 ) faceA.vertexNormals.push( normal );
+							if ( i !== 0 ) faceB.vertexNormals.push( normal );
+
+						}
+
+					}
+
+
+					if ( hasFaceColor ) {
+
+						colorIndex = faces[ offset ++ ];
+						hex = colors[ colorIndex ];
+
+						faceA.color.setHex( hex );
+						faceB.color.setHex( hex );
+
+					}
+
+
+					if ( hasFaceVertexColor ) {
+
+						for ( i = 0; i < 4; i ++ ) {
+
+							colorIndex = faces[ offset ++ ];
+							hex = colors[ colorIndex ];
+
+							if ( i !== 2 ) faceA.vertexColors.push( new Color( hex ) );
+							if ( i !== 0 ) faceB.vertexColors.push( new Color( hex ) );
+
+						}
+
+					}
+
+					geometry.faces.push( faceA );
+					geometry.faces.push( faceB );
+
+				} else {
+
+					face = new Face3();
+					face.a = faces[ offset ++ ];
+					face.b = faces[ offset ++ ];
+					face.c = faces[ offset ++ ];
+
+					if ( hasMaterial ) {
+
+						materialIndex = faces[ offset ++ ];
+						face.materialIndex = materialIndex;
+
+					}
+
+					// to get face <=> uv index correspondence
+
+					fi = geometry.faces.length;
+
+					if ( hasFaceVertexUv ) {
+
+						for ( i = 0; i < nUvLayers; i ++ ) {
+
+							uvLayer = json.uvs[ i ];
+
+							geometry.faceVertexUvs[ i ][ fi ] = [];
+
+							for ( j = 0; j < 3; j ++ ) {
+
+								uvIndex = faces[ offset ++ ];
+
+								u = uvLayer[ uvIndex * 2 ];
+								v = uvLayer[ uvIndex * 2 + 1 ];
+
+								uv = new Vector2( u, v );
+
+								geometry.faceVertexUvs[ i ][ fi ].push( uv );
+
+							}
+
+						}
+
+					}
+
+					if ( hasFaceNormal ) {
+
+						normalIndex = faces[ offset ++ ] * 3;
+
+						face.normal.set(
+							normals[ normalIndex ++ ],
+							normals[ normalIndex ++ ],
+							normals[ normalIndex ]
+						);
+
+					}
+
+					if ( hasFaceVertexNormal ) {
+
+						for ( i = 0; i < 3; i ++ ) {
+
+							normalIndex = faces[ offset ++ ] * 3;
+
+							normal = new Vector3(
+								normals[ normalIndex ++ ],
+								normals[ normalIndex ++ ],
+								normals[ normalIndex ]
+							);
+
+							face.vertexNormals.push( normal );
+
+						}
+
+					}
+
+
+					if ( hasFaceColor ) {
+
+						colorIndex = faces[ offset ++ ];
+						face.color.setHex( colors[ colorIndex ] );
+
+					}
+
+
+					if ( hasFaceVertexColor ) {
+
+						for ( i = 0; i < 3; i ++ ) {
+
+							colorIndex = faces[ offset ++ ];
+							face.vertexColors.push( new Color( colors[ colorIndex ] ) );
+
+						}
+
+					}
+
+					geometry.faces.push( face );
+
+				}
+
+			}
+
+		}
+
+		function parseSkin( json, geometry ) {
+
+			var influencesPerVertex = ( json.influencesPerVertex !== undefined ) ? json.influencesPerVertex : 2;
+
+			if ( json.skinWeights ) {
+
+				for ( var i = 0, l = json.skinWeights.length; i < l; i += influencesPerVertex ) {
+
+					var x = json.skinWeights[ i ];
+					var y = ( influencesPerVertex > 1 ) ? json.skinWeights[ i + 1 ] : 0;
+					var z = ( influencesPerVertex > 2 ) ? json.skinWeights[ i + 2 ] : 0;
+					var w = ( influencesPerVertex > 3 ) ? json.skinWeights[ i + 3 ] : 0;
+
+					geometry.skinWeights.push( new Vector4( x, y, z, w ) );
+
+				}
+
+			}
+
+			if ( json.skinIndices ) {
+
+				for ( var i = 0, l = json.skinIndices.length; i < l; i += influencesPerVertex ) {
+
+					var a = json.skinIndices[ i ];
+					var b = ( influencesPerVertex > 1 ) ? json.skinIndices[ i + 1 ] : 0;
+					var c = ( influencesPerVertex > 2 ) ? json.skinIndices[ i + 2 ] : 0;
+					var d = ( influencesPerVertex > 3 ) ? json.skinIndices[ i + 3 ] : 0;
+
+					geometry.skinIndices.push( new Vector4( a, b, c, d ) );
+
+				}
+
+			}
+
+			geometry.bones = json.bones;
+
+			if ( geometry.bones && geometry.bones.length > 0 && ( geometry.skinWeights.length !== geometry.skinIndices.length || geometry.skinIndices.length !== geometry.vertices.length ) ) {
+
+				console.warn( 'When skinning, number of vertices (' + geometry.vertices.length + '), skinIndices (' +
+					geometry.skinIndices.length + '), and skinWeights (' + geometry.skinWeights.length + ') should match.' );
+
+			}
+
+		}
+
+		function parseMorphing( json, geometry ) {
+
+			var scale = json.scale;
+
+			if ( json.morphTargets !== undefined ) {
+
+				for ( var i = 0, l = json.morphTargets.length; i < l; i ++ ) {
+
+					geometry.morphTargets[ i ] = {};
+					geometry.morphTargets[ i ].name = json.morphTargets[ i ].name;
+					geometry.morphTargets[ i ].vertices = [];
+
+					var dstVertices = geometry.morphTargets[ i ].vertices;
+					var srcVertices = json.morphTargets[ i ].vertices;
+
+					for ( var v = 0, vl = srcVertices.length; v < vl; v += 3 ) {
+
+						var vertex = new Vector3();
+						vertex.x = srcVertices[ v ] * scale;
+						vertex.y = srcVertices[ v + 1 ] * scale;
+						vertex.z = srcVertices[ v + 2 ] * scale;
+
+						dstVertices.push( vertex );
+
+					}
+
+				}
+
+			}
+
+			if ( json.morphColors !== undefined && json.morphColors.length > 0 ) {
+
+				console.warn( 'THREE.JSONLoader: "morphColors" no longer supported. Using them as face colors.' );
+
+				var faces = geometry.faces;
+				var morphColors = json.morphColors[ 0 ].colors;
+
+				for ( var i = 0, l = faces.length; i < l; i ++ ) {
+
+					faces[ i ].color.fromArray( morphColors, i * 3 );
+
+				}
+
+			}
+
+		}
+
+		function parseAnimations( json, geometry ) {
+
+			var outputAnimations = [];
+
+			// parse old style Bone/Hierarchy animations
+			var animations = [];
+
+			if ( json.animation !== undefined ) {
+
+				animations.push( json.animation );
+
+			}
+
+			if ( json.animations !== undefined ) {
+
+				if ( json.animations.length ) {
+
+					animations = animations.concat( json.animations );
+
+				} else {
+
+					animations.push( json.animations );
+
+				}
+
+			}
+
+			for ( var i = 0; i < animations.length; i ++ ) {
+
+				var clip = AnimationClip.parseAnimation( animations[ i ], geometry.bones );
+				if ( clip ) outputAnimations.push( clip );
+
+			}
+
+			// parse implicit morph animations
+			if ( geometry.morphTargets ) {
+
+				// TODO: Figure out what an appropraite FPS is for morph target animations -- defaulting to 10, but really it is completely arbitrary.
+				var morphAnimationClips = AnimationClip.CreateClipsFromMorphTargetSequences( geometry.morphTargets, 10 );
+				outputAnimations = outputAnimations.concat( morphAnimationClips );
+
+			}
+
+			if ( outputAnimations.length > 0 ) geometry.animations = outputAnimations;
+
+		}
+
+		return function parse( json, texturePath ) {
+
+			if ( json.data !== undefined ) {
+
+				// Geometry 4.0 spec
+				json = json.data;
+
+			}
+
+			if ( json.scale !== undefined ) {
+
+				json.scale = 1.0 / json.scale;
+
+			} else {
+
+				json.scale = 1.0;
+
+			}
+
+			var geometry = new Geometry();
+
+			parseModel( json, geometry );
+			parseSkin( json, geometry );
+			parseMorphing( json, geometry );
+			parseAnimations( json, geometry );
+
+			geometry.computeFaceNormals();
+			geometry.computeBoundingSphere();
+
+			if ( json.materials === undefined || json.materials.length === 0 ) {
+
+				return { geometry: geometry };
+
+			} else {
+
+				var materials = Loader.prototype.initMaterials( json.materials, texturePath, this.crossOrigin );
+
+				return { geometry: geometry, materials: materials };
+
+			}
+
+		};
+
+	} )()
+
+} );
+
+/**
+ * @author mrdoob / http://mrdoob.com/
  */
 
 function ObjectLoader( manager ) {
@@ -41105,6 +41679,7 @@ ObjectLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 		if ( json !== undefined ) {
 
+			var geometryLoader = new JSONLoader();
 			var bufferGeometryLoader = new BufferGeometryLoader();
 
 			for ( var i = 0, l = json.length; i < l; i ++ ) {
@@ -41353,9 +41928,10 @@ ObjectLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 						break;
 
 					case 'Geometry':
-						console.error( 'THREE.ObjectLoader: Loading "Geometry" is not supported anymore.' );
+						
+						geometry = geometryLoader.parse( data, this.texturePath ).geometry;
 
-						continue;
+						break;
 
 					default:
 
@@ -51511,7 +52087,7 @@ function CanvasRenderer() {
 
 //
 
-function JSONLoader() {
+function JSONLoader$1() {
 
 	console.error( 'THREE.JSONLoader has been removed.' );
 
@@ -51559,4 +52135,4 @@ if ( typeof __THREE_DEVTOOLS__ !== 'undefined' ) {
 
 }
 
-export { ACESFilmicToneMapping, AddEquation, AddOperation, AdditiveAnimationBlendMode, AdditiveBlending, AlphaFormat, AlwaysDepth, AlwaysStencilFunc, AmbientLight, AmbientLightProbe, AnimationClip, AnimationLoader, AnimationMixer, AnimationObjectGroup, AnimationUtils, ArcCurve, ArrayCamera, ArrowHelper, Audio, AudioAnalyser, AudioContext, AudioListener, AudioLoader, AxesHelper, AxisHelper, BackSide, BasicDepthPacking, BasicShadowMap, BinaryTextureLoader, Bone, BooleanKeyframeTrack, BoundingBoxHelper, Box2, Box3, Box3Helper, BoxBufferGeometry, BoxGeometry, BoxHelper, BufferAttribute, BufferGeometry, BufferGeometryLoader, ByteType, Cache, Camera, CameraHelper, CanvasRenderer, CanvasTexture, CatmullRomCurve3, CineonToneMapping, CircleBufferGeometry, CircleGeometry, ClampToEdgeWrapping, Clock, ClosedSplineCurve3, Color, ColorKeyframeTrack, CompressedTexture, CompressedTextureLoader, ConeBufferGeometry, ConeGeometry, CubeCamera, BoxGeometry as CubeGeometry, CubeReflectionMapping, CubeRefractionMapping, CubeTexture, CubeTextureLoader, CubeUVReflectionMapping, CubeUVRefractionMapping, CubicBezierCurve, CubicBezierCurve3, CubicInterpolant, CullFaceBack, CullFaceFront, CullFaceFrontBack, CullFaceNone, Curve, CurvePath, CustomBlending, CylinderBufferGeometry, CylinderGeometry, Cylindrical, DataTexture, DataTexture2DArray, DataTexture3D, DataTextureLoader, DecrementStencilOp, DecrementWrapStencilOp, DefaultLoadingManager, DepthFormat, DepthStencilFormat, DepthTexture, DirectionalLight, DirectionalLightHelper, DirectionalLightShadow, DiscreteInterpolant, DodecahedronBufferGeometry, DodecahedronGeometry, DoubleSide, DstAlphaFactor, DstColorFactor, DynamicBufferAttribute, DynamicCopyUsage, DynamicDrawUsage, DynamicReadUsage, EdgesGeometry, EdgesHelper, EllipseCurve, EqualDepth, EqualStencilFunc, EquirectangularReflectionMapping, EquirectangularRefractionMapping, Euler, EventDispatcher, ExtrudeBufferGeometry, ExtrudeGeometry, Face3, Face4, FaceColors, FileLoader, FlatShading, Float32Attribute, Float32BufferAttribute, Float64Attribute, Float64BufferAttribute, FloatType, Fog, FogExp2, Font, FontLoader, FrontFaceDirectionCCW, FrontFaceDirectionCW, FrontSide, Frustum, GammaEncoding, Geometry, GeometryUtils, GreaterDepth, GreaterEqualDepth, GreaterEqualStencilFunc, GreaterStencilFunc, GridHelper, Group, HalfFloatType, HemisphereLight, HemisphereLightHelper, HemisphereLightProbe, IcosahedronBufferGeometry, IcosahedronGeometry, ImageBitmapLoader, ImageLoader, ImageUtils, ImmediateRenderObject, IncrementStencilOp, IncrementWrapStencilOp, InstancedBufferAttribute, InstancedBufferGeometry, InstancedInterleavedBuffer, InstancedMesh, Int16Attribute, Int16BufferAttribute, Int32Attribute, Int32BufferAttribute, Int8Attribute, Int8BufferAttribute, IntType, InterleavedBuffer, InterleavedBufferAttribute, Interpolant, InterpolateDiscrete, InterpolateLinear, InterpolateSmooth, InvertStencilOp, JSONLoader, KeepStencilOp, KeyframeTrack, LOD, LatheBufferGeometry, LatheGeometry, Layers, LensFlare, LessDepth, LessEqualDepth, LessEqualStencilFunc, LessStencilFunc, Light, LightProbe, LightShadow, Line, Line3, LineBasicMaterial, LineCurve, LineCurve3, LineDashedMaterial, LineLoop, LinePieces, LineSegments, LineStrip, LinearEncoding, LinearFilter, LinearInterpolant, LinearMipMapLinearFilter, LinearMipMapNearestFilter, LinearMipmapLinearFilter, LinearMipmapNearestFilter, LinearToneMapping, Loader, LoaderUtils, LoadingManager, LogLuvEncoding, LoopOnce, LoopPingPong, LoopRepeat, LuminanceAlphaFormat, LuminanceFormat, MOUSE, Material, MaterialLoader, MathUtils as Math, MathUtils, Matrix3, Matrix4, MaxEquation, Mesh, MeshBasicMaterial, MeshDepthMaterial, MeshDistanceMaterial, MeshFaceMaterial, MeshLambertMaterial, MeshMatcapMaterial, MeshNormalMaterial, MeshPhongMaterial, MeshPhysicalMaterial, MeshStandardMaterial, MeshToonMaterial, MinEquation, MirroredRepeatWrapping, MixOperation, MultiMaterial, MultiplyBlending, MultiplyOperation, NearestFilter, NearestMipMapLinearFilter, NearestMipMapNearestFilter, NearestMipmapLinearFilter, NearestMipmapNearestFilter, NeverDepth, NeverStencilFunc, NoBlending, NoColors, NoToneMapping, NormalAnimationBlendMode, NormalBlending, NotEqualDepth, NotEqualStencilFunc, NumberKeyframeTrack, Object3D, ObjectLoader, ObjectSpaceNormalMap, OctahedronBufferGeometry, OctahedronGeometry, OneFactor, OneMinusDstAlphaFactor, OneMinusDstColorFactor, OneMinusSrcAlphaFactor, OneMinusSrcColorFactor, OrthographicCamera, PCFShadowMap, PCFSoftShadowMap, PMREMGenerator, ParametricBufferGeometry, ParametricGeometry, Particle, ParticleBasicMaterial, ParticleSystem, ParticleSystemMaterial, Path, PerspectiveCamera, Plane, PlaneBufferGeometry, PlaneGeometry, PlaneHelper, PointCloud, PointCloudMaterial, PointLight, PointLightHelper, Points, PointsMaterial, PolarGridHelper, PolyhedronBufferGeometry, PolyhedronGeometry, PositionalAudio, PropertyBinding, PropertyMixer, QuadraticBezierCurve, QuadraticBezierCurve3, Quaternion, QuaternionKeyframeTrack, QuaternionLinearInterpolant, REVISION, RGBADepthPacking, RGBAFormat, RGBAIntegerFormat, RGBA_ASTC_10x10_Format, RGBA_ASTC_10x5_Format, RGBA_ASTC_10x6_Format, RGBA_ASTC_10x8_Format, RGBA_ASTC_12x10_Format, RGBA_ASTC_12x12_Format, RGBA_ASTC_4x4_Format, RGBA_ASTC_5x4_Format, RGBA_ASTC_5x5_Format, RGBA_ASTC_6x5_Format, RGBA_ASTC_6x6_Format, RGBA_ASTC_8x5_Format, RGBA_ASTC_8x6_Format, RGBA_ASTC_8x8_Format, RGBA_BPTC_Format, RGBA_ETC2_EAC_Format, RGBA_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGBA_S3TC_DXT1_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGBDEncoding, RGBEEncoding, RGBEFormat, RGBFormat, RGBIntegerFormat, RGBM16Encoding, RGBM7Encoding, RGB_ETC1_Format, RGB_ETC2_Format, RGB_PVRTC_2BPPV1_Format, RGB_PVRTC_4BPPV1_Format, RGB_S3TC_DXT1_Format, RGFormat, RGIntegerFormat, RawShaderMaterial, Ray, Raycaster, RectAreaLight, RedFormat, RedIntegerFormat, ReinhardToneMapping, RepeatWrapping, ReplaceStencilOp, ReverseSubtractEquation, RingBufferGeometry, RingGeometry, SRGB8_ALPHA8_ASTC_10x10_Format, SRGB8_ALPHA8_ASTC_10x5_Format, SRGB8_ALPHA8_ASTC_10x6_Format, SRGB8_ALPHA8_ASTC_10x8_Format, SRGB8_ALPHA8_ASTC_12x10_Format, SRGB8_ALPHA8_ASTC_12x12_Format, SRGB8_ALPHA8_ASTC_4x4_Format, SRGB8_ALPHA8_ASTC_5x4_Format, SRGB8_ALPHA8_ASTC_5x5_Format, SRGB8_ALPHA8_ASTC_6x5_Format, SRGB8_ALPHA8_ASTC_6x6_Format, SRGB8_ALPHA8_ASTC_8x5_Format, SRGB8_ALPHA8_ASTC_8x6_Format, SRGB8_ALPHA8_ASTC_8x8_Format, Scene, SceneUtils, ShaderChunk, ShaderLib, ShaderMaterial, ShadowMaterial, Shape, ShapeBufferGeometry, ShapeGeometry, ShapePath, ShapeUtils, ShortType, Skeleton, SkeletonHelper, SkinnedMesh, SmoothShading, Sphere, SphereBufferGeometry, SphereGeometry, Spherical, SphericalHarmonics3, SphericalReflectionMapping, Spline, SplineCurve, SplineCurve3, SpotLight, SpotLightHelper, SpotLightShadow, Sprite, SpriteMaterial, SrcAlphaFactor, SrcAlphaSaturateFactor, SrcColorFactor, StaticCopyUsage, StaticDrawUsage, StaticReadUsage, StereoCamera, StreamCopyUsage, StreamDrawUsage, StreamReadUsage, StringKeyframeTrack, SubtractEquation, SubtractiveBlending, TOUCH, TangentSpaceNormalMap, TetrahedronBufferGeometry, TetrahedronGeometry, TextBufferGeometry, TextGeometry, Texture, TextureLoader, TorusBufferGeometry, TorusGeometry, TorusKnotBufferGeometry, TorusKnotGeometry, Triangle, TriangleFanDrawMode, TriangleStripDrawMode, TrianglesDrawMode, TubeBufferGeometry, TubeGeometry, UVMapping, Uint16Attribute, Uint16BufferAttribute, Uint32Attribute, Uint32BufferAttribute, Uint8Attribute, Uint8BufferAttribute, Uint8ClampedAttribute, Uint8ClampedBufferAttribute, Uncharted2ToneMapping, Uniform, UniformsLib, UniformsUtils, UnsignedByteType, UnsignedInt248Type, UnsignedIntType, UnsignedShort4444Type, UnsignedShort5551Type, UnsignedShort565Type, UnsignedShortType, VSMShadowMap, Vector2, Vector3, Vector4, VectorKeyframeTrack, Vertex, VertexColors, VideoTexture, WebGLCubeRenderTarget, WebGLMultisampleRenderTarget, WebGLRenderTarget, WebGLRenderTargetCube, WebGLRenderer, WebGLUtils, WireframeGeometry, WireframeHelper, WrapAroundEnding, XHRLoader, ZeroCurvatureEnding, ZeroFactor, ZeroSlopeEnding, ZeroStencilOp, sRGBEncoding };
+export { ACESFilmicToneMapping, AddEquation, AddOperation, AdditiveAnimationBlendMode, AdditiveBlending, AlphaFormat, AlwaysDepth, AlwaysStencilFunc, AmbientLight, AmbientLightProbe, AnimationClip, AnimationLoader, AnimationMixer, AnimationObjectGroup, AnimationUtils, ArcCurve, ArrayCamera, ArrowHelper, Audio, AudioAnalyser, AudioContext, AudioListener, AudioLoader, AxesHelper, AxisHelper, BackSide, BasicDepthPacking, BasicShadowMap, BinaryTextureLoader, Bone, BooleanKeyframeTrack, BoundingBoxHelper, Box2, Box3, Box3Helper, BoxBufferGeometry, BoxGeometry, BoxHelper, BufferAttribute, BufferGeometry, BufferGeometryLoader, ByteType, Cache, Camera, CameraHelper, CanvasRenderer, CanvasTexture, CatmullRomCurve3, CineonToneMapping, CircleBufferGeometry, CircleGeometry, ClampToEdgeWrapping, Clock, ClosedSplineCurve3, Color, ColorKeyframeTrack, CompressedTexture, CompressedTextureLoader, ConeBufferGeometry, ConeGeometry, CubeCamera, BoxGeometry as CubeGeometry, CubeReflectionMapping, CubeRefractionMapping, CubeTexture, CubeTextureLoader, CubeUVReflectionMapping, CubeUVRefractionMapping, CubicBezierCurve, CubicBezierCurve3, CubicInterpolant, CullFaceBack, CullFaceFront, CullFaceFrontBack, CullFaceNone, Curve, CurvePath, CustomBlending, CylinderBufferGeometry, CylinderGeometry, Cylindrical, DataTexture, DataTexture2DArray, DataTexture3D, DataTextureLoader, DecrementStencilOp, DecrementWrapStencilOp, DefaultLoadingManager, DepthFormat, DepthStencilFormat, DepthTexture, DirectionalLight, DirectionalLightHelper, DirectionalLightShadow, DiscreteInterpolant, DodecahedronBufferGeometry, DodecahedronGeometry, DoubleSide, DstAlphaFactor, DstColorFactor, DynamicBufferAttribute, DynamicCopyUsage, DynamicDrawUsage, DynamicReadUsage, EdgesGeometry, EdgesHelper, EllipseCurve, EqualDepth, EqualStencilFunc, EquirectangularReflectionMapping, EquirectangularRefractionMapping, Euler, EventDispatcher, ExtrudeBufferGeometry, ExtrudeGeometry, Face3, Face4, FaceColors, FileLoader, FlatShading, Float32Attribute, Float32BufferAttribute, Float64Attribute, Float64BufferAttribute, FloatType, Fog, FogExp2, Font, FontLoader, FrontFaceDirectionCCW, FrontFaceDirectionCW, FrontSide, Frustum, GammaEncoding, Geometry, GeometryUtils, GreaterDepth, GreaterEqualDepth, GreaterEqualStencilFunc, GreaterStencilFunc, GridHelper, Group, HalfFloatType, HemisphereLight, HemisphereLightHelper, HemisphereLightProbe, IcosahedronBufferGeometry, IcosahedronGeometry, ImageBitmapLoader, ImageLoader, ImageUtils, ImmediateRenderObject, IncrementStencilOp, IncrementWrapStencilOp, InstancedBufferAttribute, InstancedBufferGeometry, InstancedInterleavedBuffer, InstancedMesh, Int16Attribute, Int16BufferAttribute, Int32Attribute, Int32BufferAttribute, Int8Attribute, Int8BufferAttribute, IntType, InterleavedBuffer, InterleavedBufferAttribute, Interpolant, InterpolateDiscrete, InterpolateLinear, InterpolateSmooth, InvertStencilOp, JSONLoader$1 as JSONLoader, KeepStencilOp, KeyframeTrack, LOD, LatheBufferGeometry, LatheGeometry, Layers, LensFlare, LessDepth, LessEqualDepth, LessEqualStencilFunc, LessStencilFunc, Light, LightProbe, LightShadow, Line, Line3, LineBasicMaterial, LineCurve, LineCurve3, LineDashedMaterial, LineLoop, LinePieces, LineSegments, LineStrip, LinearEncoding, LinearFilter, LinearInterpolant, LinearMipMapLinearFilter, LinearMipMapNearestFilter, LinearMipmapLinearFilter, LinearMipmapNearestFilter, LinearToneMapping, Loader, LoaderUtils, LoadingManager, LogLuvEncoding, LoopOnce, LoopPingPong, LoopRepeat, LuminanceAlphaFormat, LuminanceFormat, MOUSE, Material, MaterialLoader, MathUtils as Math, MathUtils, Matrix3, Matrix4, MaxEquation, Mesh, MeshBasicMaterial, MeshDepthMaterial, MeshDistanceMaterial, MeshFaceMaterial, MeshLambertMaterial, MeshMatcapMaterial, MeshNormalMaterial, MeshPhongMaterial, MeshPhysicalMaterial, MeshStandardMaterial, MeshToonMaterial, MinEquation, MirroredRepeatWrapping, MixOperation, MultiMaterial, MultiplyBlending, MultiplyOperation, NearestFilter, NearestMipMapLinearFilter, NearestMipMapNearestFilter, NearestMipmapLinearFilter, NearestMipmapNearestFilter, NeverDepth, NeverStencilFunc, NoBlending, NoColors, NoToneMapping, NormalAnimationBlendMode, NormalBlending, NotEqualDepth, NotEqualStencilFunc, NumberKeyframeTrack, Object3D, ObjectLoader, ObjectSpaceNormalMap, OctahedronBufferGeometry, OctahedronGeometry, OneFactor, OneMinusDstAlphaFactor, OneMinusDstColorFactor, OneMinusSrcAlphaFactor, OneMinusSrcColorFactor, OrthographicCamera, PCFShadowMap, PCFSoftShadowMap, PMREMGenerator, ParametricBufferGeometry, ParametricGeometry, Particle, ParticleBasicMaterial, ParticleSystem, ParticleSystemMaterial, Path, PerspectiveCamera, Plane, PlaneBufferGeometry, PlaneGeometry, PlaneHelper, PointCloud, PointCloudMaterial, PointLight, PointLightHelper, Points, PointsMaterial, PolarGridHelper, PolyhedronBufferGeometry, PolyhedronGeometry, PositionalAudio, PropertyBinding, PropertyMixer, QuadraticBezierCurve, QuadraticBezierCurve3, Quaternion, QuaternionKeyframeTrack, QuaternionLinearInterpolant, REVISION, RGBADepthPacking, RGBAFormat, RGBAIntegerFormat, RGBA_ASTC_10x10_Format, RGBA_ASTC_10x5_Format, RGBA_ASTC_10x6_Format, RGBA_ASTC_10x8_Format, RGBA_ASTC_12x10_Format, RGBA_ASTC_12x12_Format, RGBA_ASTC_4x4_Format, RGBA_ASTC_5x4_Format, RGBA_ASTC_5x5_Format, RGBA_ASTC_6x5_Format, RGBA_ASTC_6x6_Format, RGBA_ASTC_8x5_Format, RGBA_ASTC_8x6_Format, RGBA_ASTC_8x8_Format, RGBA_BPTC_Format, RGBA_ETC2_EAC_Format, RGBA_PVRTC_2BPPV1_Format, RGBA_PVRTC_4BPPV1_Format, RGBA_S3TC_DXT1_Format, RGBA_S3TC_DXT3_Format, RGBA_S3TC_DXT5_Format, RGBDEncoding, RGBEEncoding, RGBEFormat, RGBFormat, RGBIntegerFormat, RGBM16Encoding, RGBM7Encoding, RGB_ETC1_Format, RGB_ETC2_Format, RGB_PVRTC_2BPPV1_Format, RGB_PVRTC_4BPPV1_Format, RGB_S3TC_DXT1_Format, RGFormat, RGIntegerFormat, RawShaderMaterial, Ray, Raycaster, RectAreaLight, RedFormat, RedIntegerFormat, ReinhardToneMapping, RepeatWrapping, ReplaceStencilOp, ReverseSubtractEquation, RingBufferGeometry, RingGeometry, SRGB8_ALPHA8_ASTC_10x10_Format, SRGB8_ALPHA8_ASTC_10x5_Format, SRGB8_ALPHA8_ASTC_10x6_Format, SRGB8_ALPHA8_ASTC_10x8_Format, SRGB8_ALPHA8_ASTC_12x10_Format, SRGB8_ALPHA8_ASTC_12x12_Format, SRGB8_ALPHA8_ASTC_4x4_Format, SRGB8_ALPHA8_ASTC_5x4_Format, SRGB8_ALPHA8_ASTC_5x5_Format, SRGB8_ALPHA8_ASTC_6x5_Format, SRGB8_ALPHA8_ASTC_6x6_Format, SRGB8_ALPHA8_ASTC_8x5_Format, SRGB8_ALPHA8_ASTC_8x6_Format, SRGB8_ALPHA8_ASTC_8x8_Format, Scene, SceneUtils, ShaderChunk, ShaderLib, ShaderMaterial, ShadowMaterial, Shape, ShapeBufferGeometry, ShapeGeometry, ShapePath, ShapeUtils, ShortType, Skeleton, SkeletonHelper, SkinnedMesh, SmoothShading, Sphere, SphereBufferGeometry, SphereGeometry, Spherical, SphericalHarmonics3, SphericalReflectionMapping, Spline, SplineCurve, SplineCurve3, SpotLight, SpotLightHelper, SpotLightShadow, Sprite, SpriteMaterial, SrcAlphaFactor, SrcAlphaSaturateFactor, SrcColorFactor, StaticCopyUsage, StaticDrawUsage, StaticReadUsage, StereoCamera, StreamCopyUsage, StreamDrawUsage, StreamReadUsage, StringKeyframeTrack, SubtractEquation, SubtractiveBlending, TOUCH, TangentSpaceNormalMap, TetrahedronBufferGeometry, TetrahedronGeometry, TextBufferGeometry, TextGeometry, Texture, TextureLoader, TorusBufferGeometry, TorusGeometry, TorusKnotBufferGeometry, TorusKnotGeometry, Triangle, TriangleFanDrawMode, TriangleStripDrawMode, TrianglesDrawMode, TubeBufferGeometry, TubeGeometry, UVMapping, Uint16Attribute, Uint16BufferAttribute, Uint32Attribute, Uint32BufferAttribute, Uint8Attribute, Uint8BufferAttribute, Uint8ClampedAttribute, Uint8ClampedBufferAttribute, Uncharted2ToneMapping, Uniform, UniformsLib, UniformsUtils, UnsignedByteType, UnsignedInt248Type, UnsignedIntType, UnsignedShort4444Type, UnsignedShort5551Type, UnsignedShort565Type, UnsignedShortType, VSMShadowMap, Vector2, Vector3, Vector4, VectorKeyframeTrack, Vertex, VertexColors, VideoTexture, WebGLCubeRenderTarget, WebGLMultisampleRenderTarget, WebGLRenderTarget, WebGLRenderTargetCube, WebGLRenderer, WebGLUtils, WireframeGeometry, WireframeHelper, WrapAroundEnding, XHRLoader, ZeroCurvatureEnding, ZeroFactor, ZeroSlopeEnding, ZeroStencilOp, sRGBEncoding };

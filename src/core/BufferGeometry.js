@@ -1009,38 +1009,12 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 	},
 
-	// toNonIndexed: function () {
-
-	// 	function convertBufferAttribute( attribute, indices ) {
-
-	// 		var array = attribute.array;
-	// 		var itemSize = attribute.itemSize;
-	//      var normalized = attribute.normalized;
-	// 		var array2 = new array.constructor( indices.length * itemSize );
-
-	// 		var index = 0, index2 = 0;
-
-	// 		for ( var i = 0, l = indices.length; i < l; i ++ ) {
-
-	// 			index = indices[ i ] * itemSize;
-
-	// 			for ( var j = 0; j < itemSize; j ++ ) {
-
-	// 				array2[ index2 ++ ] = array[ index ++ ];
-
-	// 			}
-
-	// 		}
-
-	// 		return new BufferAttribute( array2, itemSize );
-
-	// 	}
-
 	toIndexed: function () {
 
 		let prec = 0;
 		let list = [];
 		let vertices = {};
+		let array2 = [];
 
 		function store( x, y, z, v ) {
 
@@ -1193,6 +1167,32 @@ BufferGeometry.prototype = Object.assign( Object.create( EventDispatcher.prototy
 
 			console.warn( 'THREE.BufferGeometry.toNonIndexed(): Geometry is already non-indexed.' );
 			return this;
+
+		}
+
+		
+		function convertBufferAttribute( attribute, indices ) {
+
+			var array = attribute.array;
+			var itemSize = attribute.itemSize;
+	     var normalized = attribute.normalized;
+			var array2 = new array.constructor( indices.length * itemSize );
+
+			var index = 0, index2 = 0;
+
+			for ( var i = 0, l = indices.length; i < l; i ++ ) {
+
+				index = indices[ i ] * itemSize;
+
+				for ( var j = 0; j < itemSize; j ++ ) {
+
+					array2[ index2 ++ ] = array[ index ++ ];
+
+				}
+
+			}
+
+			return new BufferAttribute( array2, itemSize );
 
 		}
 

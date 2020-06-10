@@ -1099,6 +1099,8 @@ function WebGLRenderer( parameters ) {
 
 	};
 
+	let _shadowMapHasContents = false;
+
 	// Rendering
 
 	this.render = function ( scene, camera ) {
@@ -1185,18 +1187,35 @@ function WebGLRenderer( parameters ) {
 
 		}
 
-		//
+		if (!this.shadowsDisabled) {
 
-		if ( _clippingEnabled ) _clipping.beginShadows();
+			if ( _clippingEnabled ) _clipping.beginShadows();
 
-		var shadowsArray = currentRenderState.state.shadowsArray;
+			var shadowsArray = currentRenderState.state.shadowsArray;
 
-		shadowMap.render( shadowsArray, scene, camera );
+			shadowMap.render( shadowsArray, scene, camera );
 
-		currentRenderState.setupLights( camera );
+			currentRenderState.setupLights( camera );
 
-		if ( _clippingEnabled ) _clipping.endShadows();
+			if ( _clippingEnabled ) _clipping.endShadows();
 
+			_shadowMapHasContents = true;
+
+		} else {
+
+			if (_shadowMapHasContents) {
+
+				// clear shadow map once after shadows disabled
+				var shadowsArray = currentRenderState.state.shadowsArray;
+				shadowMap.render( shadowsArray,
+					{ children: scene.children.filter(mesh => !mesh.isSkinnedMesh && !mesh.isCar && !mesh.isCarWheels ) },
+					camera );
+				_shadowMapHasContents = false;
+
+			}
+			currentRenderState.setupLights( camera );
+
+		}
 		//
 
 		if ( this.info.autoReset ) this.info.reset();

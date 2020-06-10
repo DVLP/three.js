@@ -52,6 +52,7 @@ import { AnimationClip } from '../animation/AnimationClip.js';
 import { MaterialLoader } from './MaterialLoader.js';
 import { LoaderUtils } from './LoaderUtils.js';
 import { BufferGeometryLoader } from './BufferGeometryLoader.js';
+import { JSONLoader } from './JSONLoader.js';
 import { Loader } from './Loader.js';
 import { FileLoader } from './FileLoader.js';
 import * as Geometries from '../geometries/Geometries.js';
@@ -171,6 +172,7 @@ ObjectLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 
 		if ( json !== undefined ) {
 
+			var geometryLoader = new JSONLoader();
 			var bufferGeometryLoader = new BufferGeometryLoader();
 
 			for ( var i = 0, l = json.length; i < l; i ++ ) {
@@ -419,9 +421,10 @@ ObjectLoader.prototype = Object.assign( Object.create( Loader.prototype ), {
 						break;
 
 					case 'Geometry':
-						console.error( 'THREE.ObjectLoader: Loading "Geometry" is not supported anymore.' );
+						
+						geometry = geometryLoader.parse( data, this.texturePath ).geometry;
 
-						continue;
+						break;
 
 					default:
 
