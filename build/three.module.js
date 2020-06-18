@@ -25804,21 +25804,21 @@ function WebGLRenderer( parameters ) {
 
 			} else if ( object.isMesh || object.isLine || object.isPoints ) {
 
-				if ( object.isSkinnedMesh ) {
+				// checking if object's parent is in frustum only is evil...
+				if ( ! object.frustumCulled || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
+					if ( object.isSkinnedMesh ) {
 
-					// update skeleton only once in a frame
+						// update skeleton only once in a frame
 
-					if ( object.skeleton.frame !== info.render.frame ) {
+						if ( object.skeleton.frame !== info.render.frame ) {
 
-						object.skeleton.update();
-						object.skeleton.frame = info.render.frame;
+							object.skeleton.update();
+							object.skeleton.frame = info.render.frame;
+
+						}
 
 					}
 
-				}
-
-				// checking if object's parent is in frustum only is evil...
-				if ( ! object.frustumCulled || (object.parent && object.parent.inFrustum) || (object.inFrustum = (camera.inFov(object) && _frustum.intersectsObject( object )))) {
 					object.inFrustum = true;
 
 					if ( sortObjects ) {
