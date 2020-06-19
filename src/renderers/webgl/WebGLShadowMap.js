@@ -393,7 +393,7 @@ function WebGLShadowMap( _renderer, _objects, maxTextureSize ) {
 
 	function renderObject( object, camera, shadowCamera, light, type ) {
 
-		if ( object.visible === false ) return;
+		if ( object.visible === false || object.isBone ) return;
 
 		var visible = object.layers.test( camera.layers );
 

@@ -216,6 +216,10 @@ Camera.prototype.inFov = function(object) {
     centrey = object.position.z,
     radius = bSphere.radius;
 
+  const deltax = this.worldPos.x - centrex;
+  const deltaz = this.worldPos.z - centrey;
+  if (deltax * deltax + deltaz * deltaz > this.far * this.far) return false;
+
   // TEMP: radius should not need to be doubled
   return this.circleInFov(centrex, centrey, radius * 2);
 

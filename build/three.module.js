@@ -14386,6 +14386,10 @@ Camera.prototype.inFov = function(object) {
     centrey = object.position.z,
     radius = bSphere.radius;
 
+  const deltax = this.worldPos.x - centrex;
+  const deltaz = this.worldPos.z - centrey;
+  if (deltax * deltax + deltaz * deltaz > this.far * this.far) return false;
+
   // TEMP: radius should not need to be doubled
   return this.circleInFov(centrex, centrey, radius * 2);
 
@@ -21906,7 +21910,7 @@ function WebGLShadowMap( _renderer, _objects, maxTextureSize ) {
 
 	function renderObject( object, camera, shadowCamera, light, type ) {
 
-		if ( object.visible === false ) return;
+		if ( object.visible === false || object.isBone ) return;
 
 		var visible = object.layers.test( camera.layers );
 
@@ -25594,11 +25598,11 @@ function WebGLRenderer( parameters ) {
 
 		// update scene graph
 
-		// if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
+		if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
 
 		// update camera matrices and frustum
 
-		// if ( camera.parent === null ) camera.updateMatrixWorld();
+		if ( camera.parent === null ) camera.updateMatrixWorld();
 
 		// if ( xr.enabled && xr.isPresenting ) {
 
@@ -25621,15 +25625,18 @@ function WebGLRenderer( parameters ) {
 		currentRenderList = renderLists.get( scene, camera );
 		currentRenderList.init();
 
-		// projectObject( scene, camera, _this.sortObjects );
-		var children = scene.children;
-		for ( var i = 0, l = children.length; i < l; i ++ ) {
-			projectObject( children[ i ], camera, 0, _this.sortObjects, false );
-		}
+		if (scene.isVirtualScene) {
+			var children = scene.children;
+			for ( var i = 0, l = children.length; i < l; i ++ ) {
+				projectObject( children[ i ], camera, 0, _this.sortObjects, false );
+			}
 
-		// Objects which are hacked into scene will be skipped in above loop i.e. if they are children
-		for(var j = 0, jl = scene.hackedIntoScene.length; j < jl; j++){
-			projectObject( scene.hackedIntoScene[j], camera, 0, _this.sortObjects, true );
+			// Objects which are hacked into scene will be skipped in above loop i.e. if they are children
+			for(var j = 0, jl = scene.hackedIntoScene.length; j < jl; j++){
+				projectObject( scene.hackedIntoScene[j], camera, 0, _this.sortObjects, true );
+			}
+		} else {
+			projectObject( scene, camera, 0, _this.sortObjects, false );
 		}
 
 		currentRenderList.finish();
@@ -25744,11 +25751,11 @@ function WebGLRenderer( parameters ) {
 
 	function projectObject( object, camera, groupOrder, sortObjects, hackedIntoScene ) {
 
-		if ( object.visible === false || (!hackedIntoScene && object.hackedIntoScene) ) return;
+		if ( object.visible === false || object.isBone || (!hackedIntoScene && object.hackedIntoScene) ) return;
 
-		var visible = object.layers.test( camera.layers );
+		// var visible = object.layers.test( camera.layers );
 
-		if ( visible ) {
+		// if ( visible ) {
 
 			if ( object.isGroup ) {
 
@@ -25858,12 +25865,12 @@ function WebGLRenderer( parameters ) {
 
 			}
 
-		}
+		// }
 
 		object.updated = false;
 
 		// skip children of objects not in frustum but allow children on direct instances of Object3D
-		if( !object.inFrustum && object.type !== 'Object3D' ) { // and containers
+		if( !object.inFrustum && object.type !== 'Object3D' && !object.isScene) { // and containers
 			return;
 		}
 
