@@ -110,6 +110,11 @@ PositionalAudio.prototype = Object.assign( Object.create( Audio.prototype ), {
 
 		var panner = this.panner;
 
+		if (isNaN(_position.x) || isNaN(_position.y) || isNaN(_position.z)) {
+			console.warn('The panner position is NaN and it would crash the engine');
+			return;
+		}
+
 		if ( panner.positionX ) {
 
 			// code path for Chrome and Firefox (see #14393)
@@ -124,10 +129,6 @@ PositionalAudio.prototype = Object.assign( Object.create( Audio.prototype ), {
 			panner.orientationZ.linearRampToValueAtTime( _orientation.z, endTime );
 
 		} else {
-			if (isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) {
-				console.warn('The panner position is NaN and it would crash the engine');
-				return;
-			}
 			panner.setPosition( _position.x, _position.y, _position.z );
 			panner.setOrientation( _orientation.x, _orientation.y, _orientation.z );
 

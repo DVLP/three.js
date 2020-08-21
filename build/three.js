@@ -44128,6 +44128,11 @@
 
 			var panner = this.panner;
 
+			if (isNaN(_position$3.x) || isNaN(_position$3.y) || isNaN(_position$3.z)) {
+				console.warn('The panner position is NaN and it would crash the engine');
+				return;
+			}
+
 			if ( panner.positionX ) {
 
 				// code path for Chrome and Firefox (see #14393)
@@ -44142,10 +44147,6 @@
 				panner.orientationZ.linearRampToValueAtTime( _orientation$1.z, endTime );
 
 			} else {
-				if (isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) {
-					console.warn('The panner position is NaN and it would crash the engine');
-					return;
-				}
 				panner.setPosition( _position$3.x, _position$3.y, _position$3.z );
 				panner.setOrientation( _orientation$1.x, _orientation$1.y, _orientation$1.z );
 
