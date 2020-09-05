@@ -2825,15 +2825,40 @@ var GLTFLoader = ( function () {
 
 			}
 
-			var group = new Group();
+			const mergedGeo = new BufferGeometry();
 
-			for ( var i = 0, il = meshes.length; i < il; i ++ ) {
+			// each primitive holds full list of attributes from the original multimaterial mesh
+			// therefore no need to merge attributes we just take them from the first primitive
+			mergedGeo.attributes = meshes[0].geometry.attributes;
 
-				group.add( meshes[ i ] );
+			let indexPos = 0;
+
+			for ( i = 0, il = meshes.length; i < il; i ++ ) {
+
+				mergedGeo.groups.push({
+					start: indexPos,
+					count: meshes[i].geometry.index.count,
+					materialIndex: i,
+				});
+
+				indexPos += meshes[i].geometry.index.count;
 
 			}
 
-			return group;
+			const mergedIndex = new Uint32Array(indexPos);
+
+			indexPos = 0;
+
+			for ( i = 0, il = meshes.length; i < il; i ++ ) {
+
+				mergedIndex.set(meshes[i].geometry.index.array, indexPos);
+				indexPos += meshes[i].geometry.index.count;
+
+			}
+
+			mergedGeo.setIndex(new BufferAttribute(mergedIndex, 1));
+
+			return new Mesh(mergedGeo, materials);
 
 		} );
 

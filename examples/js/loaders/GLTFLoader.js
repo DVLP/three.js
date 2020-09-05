@@ -2763,16 +2763,42 @@ THREE.GLTFLoader = ( function () {
 
 			}
 
-			var group = new THREE.Group();
+			const mergedGeo = new THREE.BufferGeometry();
 
-			for ( var i = 0, il = meshes.length; i < il; i ++ ) {
+			// each primitive holds full list of attributes from the original multimaterial mesh
+			// therefore no need to merge attributes we just take them from the first primitive
+			mergedGeo.attributes = meshes[0].geometry.attributes;
 
-				group.add( meshes[ i ] );
+			let indexPos = 0;
+
+			for ( i = 0, il = meshes.length; i < il; i ++ ) {
+
+				const count = meshes[i].geometry.index ? meshes[i].geometry.index.count : meshes[i].geometry.attributes.position.count / 3;
+				mergedGeo.groups.push({
+					start: indexPos,
+					count,
+					materialIndex: i,
+				});
+
+				indexPos += count;
 
 			}
 
-			return group;
+			const mergedIndex = new Uint32Array(indexPos);
 
+			indexPos = 0;
+
+			for ( i = 0, il = meshes.length; i < il; i ++ ) {
+
+				mergedIndex.set(meshes[i].geometry.index.array, indexPos);
+				const count = meshes[i].geometry.index ? meshes[i].geometry.index.count : meshes[i].geometry.attributes.position.count / 3;
+				indexPos += count;
+
+			}
+
+			mergedGeo.setIndex(new THREE.BufferAttribute(mergedIndex, 1));
+
+			return new THREE.Mesh(mergedGeo, originalMaterials);
 		} );
 
 	};
