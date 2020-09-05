@@ -518,19 +518,28 @@ THREE.GLTFLoader = ( function () {
 			var chunkLength = chunkView.getUint32( chunkIndex, true );
 			chunkIndex += 4;
 
-			var chunkType = chunkView.getUint32( chunkIndex, true );
-			chunkIndex += 4;
+			if (chunkLength) {
 
-			if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.JSON ) {
+				var chunkType = chunkView.getUint32( chunkIndex, true );
+				chunkIndex += 4;
 
-				var contentArray = new Uint8Array( data, BINARY_EXTENSION_HEADER_LENGTH + chunkIndex, chunkLength );
-				this.content = THREE.LoaderUtils.decodeText( contentArray );
+				if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.JSON ) {
 
-			} else if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.BIN ) {
+					var contentArray = new Uint8Array( data, BINARY_EXTENSION_HEADER_LENGTH + chunkIndex, chunkLength );
+					var inflate = new Zlib.Inflate( contentArray ); // eslint-disable-line no-undef
+					var decompressed = inflate.decompress();
 
-				var byteOffset = BINARY_EXTENSION_HEADER_LENGTH + chunkIndex;
-				this.body = data.slice( byteOffset, byteOffset + chunkLength );
+					this.content = THREE.LoaderUtils.decodeText( decompressed );
 
+				} else if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.BIN ) {
+
+					var byteOffset = BINARY_EXTENSION_HEADER_LENGTH + chunkIndex;
+					this.body = data.slice( byteOffset, byteOffset + chunkLength );
+
+				}
+			} else {
+				console.log('DUPA: empty chunk');
+				chunkIndex += 4;
 			}
 
 			// Clients must ignore chunks with unknown types.

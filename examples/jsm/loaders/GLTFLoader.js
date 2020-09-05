@@ -131,7 +131,7 @@ var GLTFLoader = ( function () {
 
 			loader.setPath( this.path );
 			loader.setResponseType( 'arraybuffer' );
-			loader.setRequestHeader( this.requestHeader );
+			// loader.setRequestHeader( this.requestHeader );
 
 			if ( scope.crossOrigin === 'use-credentials' ) {
 
@@ -283,7 +283,7 @@ var GLTFLoader = ( function () {
 
 			} );
 
-			parser.fileLoader.setRequestHeader( this.requestHeader );
+			// parser.fileLoader.setRequestHeader( this.requestHeader );
 			parser.parse( onLoad, onError );
 
 		}
@@ -581,19 +581,28 @@ var GLTFLoader = ( function () {
 			var chunkLength = chunkView.getUint32( chunkIndex, true );
 			chunkIndex += 4;
 
-			var chunkType = chunkView.getUint32( chunkIndex, true );
-			chunkIndex += 4;
+			if (chunkLength) {
 
-			if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.JSON ) {
+				var chunkType = chunkView.getUint32( chunkIndex, true );
+				chunkIndex += 4;
 
-				var contentArray = new Uint8Array( data, BINARY_EXTENSION_HEADER_LENGTH + chunkIndex, chunkLength );
-				this.content = LoaderUtils.decodeText( contentArray );
+				if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.JSON ) {
 
-			} else if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.BIN ) {
+					var contentArray = new Uint8Array( data, BINARY_EXTENSION_HEADER_LENGTH + chunkIndex, chunkLength );
+					var inflate = new Zlib.Inflate( contentArray ); // eslint-disable-line no-undef
+					var decompressed = inflate.decompress();
 
-				var byteOffset = BINARY_EXTENSION_HEADER_LENGTH + chunkIndex;
-				this.body = data.slice( byteOffset, byteOffset + chunkLength );
+					this.content = LoaderUtils.decodeText( decompressed );
 
+				} else if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.BIN ) {
+
+					var byteOffset = BINARY_EXTENSION_HEADER_LENGTH + chunkIndex;
+					this.body = data.slice( byteOffset, byteOffset + chunkLength );
+
+				}
+			} else {
+				console.log('DUPA: empty chunk');
+				chunkIndex += 4;
 			}
 
 			// Clients must ignore chunks with unknown types.
@@ -1625,6 +1634,10 @@ var GLTFLoader = ( function () {
 					break;
 
 				case 'bufferView':
+					dependency = this.loadBufferViewGzipped( index );
+					break;
+
+				case 'bufferViewImage':
 					dependency = this.loadBufferView( index );
 					break;
 
@@ -1748,6 +1761,32 @@ var GLTFLoader = ( function () {
 			var byteLength = bufferViewDef.byteLength || 0;
 			var byteOffset = bufferViewDef.byteOffset || 0;
 			return buffer.slice( byteOffset, byteOffset + byteLength );
+
+		} );
+
+	};
+
+	/**
+	 * Same as above but unpacking gzipped stuff, not used by images
+	 */
+	GLTFParser.prototype.loadBufferViewGzipped = function ( bufferViewIndex ) {
+
+		var bufferViewDef = this.json.bufferViews[ bufferViewIndex ];
+
+		return this.getDependency( 'buffer', bufferViewDef.buffer ).then( function ( buffer ) {
+			var byteLength = bufferViewDef.byteLength || 0;
+			var byteOffset = bufferViewDef.byteOffset || 0;
+
+			var arr = new Uint8Array(buffer.slice( byteOffset, byteOffset + byteLength ));
+
+			var inflate = new Zlib.Inflate( arr ); // eslint-disable-line no-undef
+			var decompressed = inflate.decompress();
+			arr = null;
+			inflate = null;
+
+			// bufferViewDef.byteLength = decompressed.buffer.buteLength;
+
+			return decompressed.buffer;
 
 		} );
 
@@ -1922,7 +1961,7 @@ var GLTFLoader = ( function () {
 
 			// Load binary image data from bufferView, if provided.
 
-			sourceURI = parser.getDependency( 'bufferView', source.bufferView ).then( function ( bufferView ) {
+			sourceURI = parser.getDependency( 'bufferViewImage', source.bufferView ).then( function ( bufferView ) {
 
 				isObjectURL = true;
 				var blob = new Blob( [ bufferView ], { type: source.mimeType } );
