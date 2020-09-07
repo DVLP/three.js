@@ -2835,13 +2835,15 @@ var GLTFLoader = ( function () {
 
 			for ( i = 0, il = meshes.length; i < il; i ++ ) {
 
-				mergedGeo.groups.push({
-					start: indexPos,
-					count: meshes[i].geometry.index.count,
-					materialIndex: i,
-				});
+				if (meshes[i].geometry.index) {
+					mergedGeo.groups.push({
+						start: indexPos,
+						count: meshes[i].geometry.index.count,
+						materialIndex: i,
+					});
 
-				indexPos += meshes[i].geometry.index.count;
+					indexPos += meshes[i].geometry.index.count;
+				}
 
 			}
 
@@ -2850,9 +2852,10 @@ var GLTFLoader = ( function () {
 			indexPos = 0;
 
 			for ( i = 0, il = meshes.length; i < il; i ++ ) {
-
-				mergedIndex.set(meshes[i].geometry.index.array, indexPos);
-				indexPos += meshes[i].geometry.index.count;
+				if (meshes[i].geometry.index) {
+					mergedIndex.set(meshes[i].geometry.index.array, indexPos);
+					indexPos += meshes[i].geometry.index.count;
+				}
 
 			}
 
