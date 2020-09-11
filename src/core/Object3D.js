@@ -55,6 +55,7 @@ function Object3D() {
 	var rotation = new Euler();
 	var quaternion = new Quaternion();
 	var scale = new Vector3( 1, 1, 1 );
+	this.maxScale = 0;
 
 	function onRotationChange() {
 

@@ -272,7 +272,7 @@ Raycaster.prototype.intersectRemote = function ( data, callback, scene, objCache
 				obj.updateMatrixWorld( true );
 				obj.geometry.expensiveCalculateVertices( obj );
 				obj.geometry.computeBoundingBox( true );
-				obj.geometry.computeBoundingSphere( true );
+				obj.geometry.computeBoundingSphere();
 
 				// obj.bones[ 'Bone.Hips' ].position.set(0, 0, 0);
 				// obj.bones[ 'Bone.Hips' ].updateMatrix();

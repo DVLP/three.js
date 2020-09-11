@@ -5411,6 +5411,7 @@
 		var rotation = new Euler();
 		var quaternion = new Quaternion();
 		var scale = new Vector3( 1, 1, 1 );
+		this.maxScale = 0;
 
 		function onRotationChange() {
 
@@ -12261,7 +12262,7 @@
 
 			// Checking boundingSphere distance to ray
 
-			if (geometry.boundingSphere === null) { geometry.computeBoundingSphere(this.scale); }
+			if (geometry.boundingSphere === null) { geometry.computeBoundingSphere(); }
 
 			sphere.copy(geometry.boundingSphere);
 			sphere.applyMatrix4(this.matrixWorld);
@@ -12282,7 +12283,7 @@
 			var maxDistSq = raycaster.far * raycaster.far;
 			// Checking boundingSphere distance to ray
 
-			if (geometry.boundingSphere === null) { geometry.computeBoundingSphere(this.scale); }
+			if (geometry.boundingSphere === null) { geometry.computeBoundingSphere(); }
 
 			// optimization to getWorldPosition is only faster if getWorldPosition is also optimized!
 			var sphereDistSq = raycaster.ray.distanceSqToPoint( this.getWorldPosition( tempPoint ) ) - geometry.boundingSphere.radius * geometry.boundingSphere.radius;
@@ -14395,10 +14396,13 @@
 	    return true;
 	  }
 
-	  var bSphere = object.bsphere || object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale),
+	  if (!object.maxScale) {
+	    object.maxScale = Math.max(object.scale.x, object.scale.y, object.scale.z);
+	  }
+	  var bSphere = object.bsphere || object.geometry.boundingSphere || object.geometry.computeBoundingSphere(),
 	    centrex = object.position.x,
 	    centrey = object.position.z,
-	    radius = bSphere.radius;
+	    radius = bSphere.radius * object.maxScale;
 
 	  var deltax = this.worldPos.x - centrex;
 	  var deltaz = this.worldPos.z - centrey;
@@ -15096,10 +15100,10 @@
 			// for now just using 2d frustum - downside is top and bottom planes
 			// return true;
 
-			var sphere = object.bsphere || object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale);
+			var sphere = object.bsphere || object.geometry.boundingSphere || object.geometry.computeBoundingSphere();
 			var planes = this.planes;
 			var center = object.position;
-			var negRadius = - sphere.radius * 2; // added locally
+			var negRadius = - sphere.radius * 2 * (object.maxScale || 1); // added locally
 
 			// first camera.inFov gets executed
 			// (2) bottom (1) right
@@ -47384,7 +47388,7 @@
 					obj.updateMatrixWorld( true );
 					obj.geometry.expensiveCalculateVertices( obj );
 					obj.geometry.computeBoundingBox( true );
-					obj.geometry.computeBoundingSphere( true );
+					obj.geometry.computeBoundingSphere();
 
 					// obj.bones[ 'Bone.Hips' ].position.set(0, 0, 0);
 					// obj.bones[ 'Bone.Hips' ].updateMatrix();
@@ -48898,7 +48902,7 @@
 
 		position.needsUpdate = true;
 
-		this.geometry.computeBoundingSphere(this.scale);
+		this.geometry.computeBoundingSphere();
 
 	};
 

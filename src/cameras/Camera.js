@@ -211,10 +211,13 @@ Camera.prototype.inFov = function(object) {
     return true;
   }
 
-  var bSphere = object.bsphere || object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale),
+  if (!object.maxScale) {
+    object.maxScale = Math.max(object.scale.x, object.scale.y, object.scale.z);
+  }
+  var bSphere = object.bsphere || object.geometry.boundingSphere || object.geometry.computeBoundingSphere(),
     centrex = object.position.x,
     centrey = object.position.z,
-    radius = bSphere.radius;
+    radius = bSphere.radius * object.maxScale;
 
   const deltax = this.worldPos.x - centrex;
   const deltaz = this.worldPos.z - centrey;

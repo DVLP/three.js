@@ -87,10 +87,10 @@ Object.assign( Frustum.prototype, {
 		// for now just using 2d frustum - downside is top and bottom planes
 		// return true;
 
-		var sphere = object.bsphere || object.geometry.boundingSphere || object.geometry.computeBoundingSphere(object.scale);
+		var sphere = object.bsphere || object.geometry.boundingSphere || object.geometry.computeBoundingSphere();
 		var planes = this.planes;
 		var center = object.position;
-		var negRadius = - sphere.radius * 2; // added locally
+		var negRadius = - sphere.radius * 2 * (object.maxScale || 1); // added locally
 
 		// first camera.inFov gets executed
 		// (2) bottom (1) right

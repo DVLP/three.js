@@ -533,7 +533,7 @@ Mesh.prototype.raycastSphereOnly = (function() {
 
 		// Checking boundingSphere distance to ray
 
-		if (geometry.boundingSphere === null) geometry.computeBoundingSphere(this.scale);
+		if (geometry.boundingSphere === null) geometry.computeBoundingSphere();
 
 		sphere.copy(geometry.boundingSphere);
 		sphere.applyMatrix4(this.matrixWorld);
@@ -554,7 +554,7 @@ Mesh.prototype.raycastBBoxOnly = (function() {
 		var maxDistSq = raycaster.far * raycaster.far;
 		// Checking boundingSphere distance to ray
 
-		if (geometry.boundingSphere === null) geometry.computeBoundingSphere(this.scale);
+		if (geometry.boundingSphere === null) geometry.computeBoundingSphere();
 
 		// optimization to getWorldPosition is only faster if getWorldPosition is also optimized!
 		var sphereDistSq = raycaster.ray.distanceSqToPoint( this.getWorldPosition( tempPoint ) ) - geometry.boundingSphere.radius * geometry.boundingSphere.radius;
