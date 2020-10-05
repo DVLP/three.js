@@ -2799,7 +2799,7 @@ THREE.GLTFLoader = ( function () {
 
 			mergedGeo.setIndex(new THREE.BufferAttribute(mergedIndex, 1));
 
-			return new THREE.Mesh(mergedGeo, originalMaterials);
+			return new THREE.Mesh(mergedGeo, materials);
 		} );
 
 	};
