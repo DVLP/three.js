@@ -54,7 +54,7 @@ DataTextureLoader.prototype = Object.assign( Object.create( Loader.prototype ), 
 			texture.magFilter = texData.magFilter !== undefined ? texData.magFilter : LinearFilter;
 			texture.minFilter = texData.minFilter !== undefined ? texData.minFilter : LinearFilter;
 
-			texture.anisotropy = texData.anisotropy !== undefined ? texData.anisotropy : 1;
+			texture.anisotropy = texData.anisotropy !== undefined ? texData.anisotropy : 4;
 
 			if ( texData.format !== undefined ) {
 

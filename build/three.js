@@ -1528,7 +1528,7 @@
 		this.magFilter = magFilter !== undefined ? magFilter : LinearFilter;
 		this.minFilter = minFilter !== undefined ? minFilter : LinearMipmapLinearFilter;
 
-		this.anisotropy = anisotropy !== undefined ? anisotropy : 1;
+		this.anisotropy = anisotropy !== undefined ? anisotropy : 4;
 
 		this.format = format !== undefined ? format : RGBAFormat;
 		this.internalFormat = null;
@@ -37138,7 +37138,7 @@
 				texture.magFilter = texData.magFilter !== undefined ? texData.magFilter : LinearFilter;
 				texture.minFilter = texData.minFilter !== undefined ? texData.minFilter : LinearFilter;
 
-				texture.anisotropy = texData.anisotropy !== undefined ? texData.anisotropy : 1;
+				texture.anisotropy = texData.anisotropy !== undefined ? texData.anisotropy : 4;
 
 				if ( texData.format !== undefined ) {
 

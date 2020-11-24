@@ -42,7 +42,7 @@ function Texture( image, mapping, wrapS, wrapT, magFilter, minFilter, format, ty
 	this.magFilter = magFilter !== undefined ? magFilter : LinearFilter;
 	this.minFilter = minFilter !== undefined ? minFilter : LinearMipmapLinearFilter;
 
-	this.anisotropy = anisotropy !== undefined ? anisotropy : 1;
+	this.anisotropy = anisotropy !== undefined ? anisotropy : 4;
 
 	this.format = format !== undefined ? format : RGBAFormat;
 	this.internalFormat = null;
