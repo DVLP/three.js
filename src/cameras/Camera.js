@@ -22,6 +22,7 @@ function Camera() {
 
 	this.triangle = [new Vector2(), new Vector2(), new Vector2()];
 	this.worldPos = new Vector3();
+	this.drawDistanceSq = 10000;
 
 }
 
@@ -221,7 +222,21 @@ Camera.prototype.inFov = function(object) {
 
   const deltax = this.worldPos.x - centrex;
   const deltaz = this.worldPos.z - centrey;
-  if (deltax * deltax + deltaz * deltaz > this.far * this.far) return false;
+  const distance2dSq = deltax * deltax + deltaz * deltaz;
+
+  // why two this.far and this.drawDistance?
+  // this.far is also for GPU
+  // this.drawDistance is only for CPU
+  const diameter = radius * 2;
+
+  if (distance2dSq > (this.far * this.far + diameter * diameter * 2)) return false;
+  if (distance2dSq < (this.near * this.near - diameter * diameter * 2)) return false;
+  // if (distance2dSq > this.drawDistanceSq) return false;
+
+  // draw distance tiers close to far culling (camera far(gradual slicing) / cutoff (not pushed to renderer))
+    // debris - 50m / 55m
+    // cars - 150m / 160m
+    // buildings - 250m / 300m
 
   // TEMP: radius should not need to be doubled
   return this.circleInFov(centrex, centrey, radius * 2);
@@ -232,6 +247,7 @@ Camera.prototype.inFov = function(object) {
 // if a sphere(circle) is in both these triangles then the object is in frustum
 // triangle has to be updated after each frame
 Camera.prototype.updateTriangle = function (azimuthalAngle, polarAngle, drawDistance) {
+  this.drawDistanceSq = drawDistance * drawDistance;
 // 1 is default - looking straight + the bigger the steeper looking up or down the larger angle of view around
   var viewWidthMultiplier = 1 + Math.pow(Math.abs(polarAngle - Math.PI / 2), 3);
   var worldPos = this.worldPos.setFromMatrixPosition(this.matrixWorld);
@@ -316,7 +332,7 @@ Camera.prototype.checkIfCircleOnInnerSideOfLineUNCUT = function (v1x, v1y, v2x, 
 
   return d > 0 ? true : false;
 }
-(5 - 3) * 4
+
 // just like above but some calculations are cached and only calculated once per frame rather than for each object again and agagin
 Camera.prototype.checkIfCircleOnInnerSideOfLine = function (vxdelta, v1xvydelta, vydelta, v1yvxdelta, ppnAngleCos, ppnAngleSin, ccentreX, ccentreY, cradius) {
   // 1. find the furthest point from all triangle boundary lines
