@@ -14400,6 +14400,11 @@ Camera.prototype.inFov = function(object) {
   // this.drawDistance is only for CPU
   const diameter = radius * 2;
 
+  if (diameter < 5 && distance2dSq > 150 * 150) {
+    // hide small objects in distance
+    return false;
+  }
+
   if (distance2dSq > (this.far * this.far + diameter * diameter * 2)) return false;
   if (distance2dSq < (this.near * this.near - diameter * diameter * 2)) return false;
   // if (distance2dSq > this.drawDistanceSq) return false;
