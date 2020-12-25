@@ -2835,33 +2835,47 @@ var GLTFLoader = ( function () {
 
 			for ( i = 0, il = meshes.length; i < il; i ++ ) {
 
-				if (meshes[i].geometry.index) {
-					mergedGeo.groups.push({
-						start: indexPos,
-						count: meshes[i].geometry.index.count,
-						materialIndex: i,
-					});
+				const count = meshes[ i ].geometry.index ? meshes[ i ].geometry.index.count : meshes[ i ].geometry.attributes.position.count;
+				mergedGeo.groups.push( {
+					start: indexPos,
+					count,
+					materialIndex: i,
+				} );
 
-					indexPos += meshes[i].geometry.index.count;
-				}
+				indexPos += count;
 
 			}
 
-			const mergedIndex = new Uint32Array(indexPos);
+			const mergedIndex = new Uint32Array( indexPos );
 
 			indexPos = 0;
 
 			for ( i = 0, il = meshes.length; i < il; i ++ ) {
-				if (meshes[i].geometry.index) {
-					mergedIndex.set(meshes[i].geometry.index.array, indexPos);
-					indexPos += meshes[i].geometry.index.count;
+
+				if ( meshes[ i ].geometry.index ) {
+
+					mergedIndex.set( meshes[ i ].geometry.index.array, indexPos );
+					indexPos += meshes[ i ].geometry.index.count;
+
 				}
 
 			}
 
-			mergedGeo.setIndex(new BufferAttribute(mergedIndex, 1));
+			mergedGeo.setIndex( new BufferAttribute( mergedIndex, 1 ) );
 
-			return new Mesh(mergedGeo, materials);
+			const mergedMesh = meshes[ 0 ].isSkinnedMesh ? new SkinnedMesh( mergedGeo, materials ) : new Mesh( mergedGeo, materials );
+
+			// this is normally happenin in assignFinalMaterial but can't be used on merged mesh with multi materials
+			if ( meshes[ 0 ].isSkinnedMesh ) {
+
+				mergedMesh.bind( meshes[ 0 ].skeleton, meshes[ 0 ].bindMatrix );
+
+				const mats = Array.isArray( mergedMesh.material ) ? mergedMesh.material : [ mergedMesh.material ];
+				mats.forEach( m => m.skinning = true );
+
+			}
+
+			return mergedMesh;
 
 		} );
 

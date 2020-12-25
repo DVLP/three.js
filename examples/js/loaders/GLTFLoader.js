@@ -11,7 +11,8 @@ THREE.GLTFLoader = ( function () {
 
 	function GLTFLoader( manager ) {
 
-		THREE.Loader.call( this, manager );
+		// THREE.Loader.call( this, manager );
+		this.manager = ( manager !== undefined ) ? manager : THREE.DefaultLoadingManager;
 
 		this.dracoLoader = null;
 		this.ddsLoader = null;
@@ -1914,7 +1915,7 @@ THREE.GLTFLoader = ( function () {
 
 			// Load Texture resource.
 
-			var loader = options.manager.getHandler( sourceURI );
+			var loader = options.manager.getHandler && options.manager.getHandler( sourceURI );
 
 			if ( ! loader ) {
 
@@ -2773,15 +2774,14 @@ THREE.GLTFLoader = ( function () {
 
 			for ( i = 0, il = meshes.length; i < il; i ++ ) {
 
-				if (meshes[i].geometry.index) {
-					mergedGeo.groups.push({
-						start: indexPos,
-						count: meshes[i].geometry.index.count,
-						materialIndex: i,
-					});
+				const count = meshes[i].geometry.index ? meshes[i].geometry.index.count : meshes[i].geometry.attributes.position.count;
+				mergedGeo.groups.push({
+					start: indexPos,
+					count,
+					materialIndex: i,
+				});
 
-					indexPos += meshes[i].geometry.index.count;
-				}
+				indexPos += count;
 
 			}
 
@@ -2790,6 +2790,7 @@ THREE.GLTFLoader = ( function () {
 			indexPos = 0;
 
 			for ( i = 0, il = meshes.length; i < il; i ++ ) {
+
 				if (meshes[i].geometry.index) {
 					mergedIndex.set(meshes[i].geometry.index.array, indexPos);
 					indexPos += meshes[i].geometry.index.count;
@@ -2799,7 +2800,14 @@ THREE.GLTFLoader = ( function () {
 
 			mergedGeo.setIndex(new THREE.BufferAttribute(mergedIndex, 1));
 
-			return new THREE.Mesh(mergedGeo, materials);
+			const mergedMesh = meshes[0].isSkinnedMesh ? new THREE.SkinnedMesh(mergedGeo, materials) : new THREE.Mesh(mergedGeo, materials);
+			if (meshes[0].isSkinnedMesh) {
+				mergedMesh.bind(meshes[0].skeleton, meshes[0].bindMatrix);
+
+				const mats = Array.isArray(mergedMesh.material) ? mergedMesh.material : [mergedMesh.material]
+				mats.forEach(m => m.skinning = true)
+			}
+			return mergedMesh;
 		} );
 
 	};
