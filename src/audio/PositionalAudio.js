@@ -102,7 +102,7 @@ PositionalAudio.prototype = Object.assign( Object.create( Audio.prototype ), {
 
 		Object3D.prototype.updateMatrixWorld.call( this, force );
 
-		if ( this.hasPlaybackControl === true && this.isPlaying === false ) return;
+		if ( !force && this.hasPlaybackControl === true && this.isPlaying === false ) return;
 
 		this.matrixWorld.decompose( _position, _quaternion, _scale );
 

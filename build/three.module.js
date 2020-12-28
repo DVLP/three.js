@@ -27715,12 +27715,15 @@ function SkinnedMesh( geometry, material ) {
 	this.bindMatrix = new Matrix4();
 	this.bindMatrixInverse = new Matrix4();
 
-	var bones = this.initBones();
-	var skeleton = new Skeleton( bones );
+	// DO NOT USE or it causes bones duplication in older meshes, use initBones from Utils if required
+	// if (geometry.bones) {
+	// 	var bones = this.initBones();
+	// 	var skeleton = new Skeleton( bones );
 
-	this.bind( skeleton, this.matrixWorld );
+	// 	this.bind( skeleton, this.matrixWorld );
 
-	this.normalizeSkinWeights();
+	// 	this.normalizeSkinWeights();
+	// }
 
 }
 
@@ -27817,56 +27820,30 @@ SkinnedMesh.prototype = Object.assign( Object.create( Mesh.prototype ), {
 
 	normalizeSkinWeights: function () {
 
-		var scale, i;
+		const vector = new Vector4();
 
-		if ( this.geometry && this.geometry.isGeometry ) {
+		const skinWeight = this.geometry.attributes.skinWeight;
 
-			for ( i = 0; i < this.geometry.skinWeights.length; i ++ ) {
+		for ( let i = 0, l = skinWeight.count; i < l; i ++ ) {
 
-				var sw = this.geometry.skinWeights[ i ];
+			vector.x = skinWeight.getX( i );
+			vector.y = skinWeight.getY( i );
+			vector.z = skinWeight.getZ( i );
+			vector.w = skinWeight.getW( i );
 
-				scale = 1.0 / sw.manhattanLength();
+			const scale = 1.0 / vector.manhattanLength();
 
-				if ( scale !== Infinity ) {
+			if ( scale !== Infinity ) {
 
-					sw.multiplyScalar( scale );
+				vector.multiplyScalar( scale );
 
-				} else {
+			} else {
 
-					sw.set( 1, 0, 0, 0 ); // do something reasonable
-
-				}
-
-			}
-
-		} else if ( this.geometry && this.geometry.isBufferGeometry ) {
-
-			var vec = new Vector4();
-
-			var skinWeight = this.geometry.attributes.skinWeight;
-
-			for ( i = 0; i < skinWeight.count; i ++ ) {
-
-				vec.x = skinWeight.getX( i );
-				vec.y = skinWeight.getY( i );
-				vec.z = skinWeight.getZ( i );
-				vec.w = skinWeight.getW( i );
-
-				scale = 1.0 / vec.manhattanLength();
-
-				if ( scale !== Infinity ) {
-
-					vec.multiplyScalar( scale );
-
-				} else {
-
-					vec.set( 1, 0, 0, 0 ); // do something reasonable
-
-				}
-
-				skinWeight.setXYZW( i, vec.x, vec.y, vec.z, vec.w );
+				vector.set( 1, 0, 0, 0 ); // do something reasonable
 
 			}
+
+			skinWeight.setXYZW( i, vector.x, vector.y, vector.z, vector.w );
 
 		}
 
@@ -44137,7 +44114,7 @@ PositionalAudio.prototype = Object.assign( Object.create( Audio.prototype ), {
 
 		Object3D.prototype.updateMatrixWorld.call( this, force );
 
-		if ( this.hasPlaybackControl === true && this.isPlaying === false ) return;
+		if ( !force && this.hasPlaybackControl === true && this.isPlaying === false ) return;
 
 		this.matrixWorld.decompose( _position$3, _quaternion$4, _scale$2 );
 
