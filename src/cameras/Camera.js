@@ -23,6 +23,8 @@ function Camera() {
 	this.triangle = [new Vector2(), new Vector2(), new Vector2()];
 	this.worldPos = new Vector3();
 	this.drawDistanceSq = 10000;
+	// keep undefined as this will flip to true only then but still can be disabled
+	this.fastFrustumRejection = undefined;
 
 }
 
@@ -229,12 +231,14 @@ Camera.prototype.inFov = function(object) {
   // this.drawDistance is only for CPU
   const diameter = radius * 2;
 
-  if (diameter < 5 && distance2dSq > 150 * 150) {
+  if (diameter < 5 && distance2dSq > 200 * 200) {
     // hide small objects in distance
     return false;
   }
 
+  // hide objects behind this.far
   if (distance2dSq > (this.far * this.far + diameter * diameter * 2)) return false;
+  // hide objects in front of this.far
   if (distance2dSq < (this.near * this.near - diameter * diameter * 2)) return false;
   // if (distance2dSq > this.drawDistanceSq) return false;
 
@@ -348,7 +352,7 @@ Camera.prototype.checkIfCircleOnInnerSideOfLine = function (vxdelta, v1xvydelta,
   // 2. check on which side of line the point is
   var d = (farPtX * vydelta - v1xvydelta) - (farPtY * vxdelta - v1yvxdelta);
 
-  return d > 0 ? true : false;
+  return d > 0;
 }
 
 // Camera.prototype.checkIfCircleInTriangle = function(first_argument) {
