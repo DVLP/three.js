@@ -1559,6 +1559,14 @@ var GLTFLoader = ( function () {
 
 			for ( var i = 0, il = joints.length; i < il; i ++ ) {
 
+				// local change to fix stuff
+				if ( joints[ i ] === null ) {
+
+					console.warn('GLTF LOADER: joint is null!!!');
+					// continue;
+
+				}
+
 				nodeDefs[ joints[ i ] ].isBone = true;
 
 			}
